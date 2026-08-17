@@ -1,0 +1,39 @@
+.courses-page {
+  width: 100%;
+}
+
+.courses-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.courses-header button {
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  margin-top: 20px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.data-table th {
+  background: #f5f5f5;
+}
+
+.data-table button {
+  padding: 7px 12px;
+  margin-right: 8px;
+  cursor: pointer;
+}

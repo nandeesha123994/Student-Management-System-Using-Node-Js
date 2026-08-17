@@ -1,0 +1,18 @@
+.sidebar {
+  width: 220px;
+  min-height: calc(100vh - 70px);
+  border-right: 1px solid #ddd;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.sidebar h3 {
+  margin-top: 0;
+}
+
+.sidebar a {
+  display: block;
+  text-decoration: none;
+  margin: 15px 0;
+  color: #333;
+}

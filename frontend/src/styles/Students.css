@@ -1,0 +1,38 @@
+.students-page {
+  width: 100%;
+}
+
+.students-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.students-header button {
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.data-table th {
+  background: #f5f5f5;
+}
+
+.data-table button {
+  padding: 7px 12px;
+  margin-right: 8px;
+  cursor: pointer;
+}
