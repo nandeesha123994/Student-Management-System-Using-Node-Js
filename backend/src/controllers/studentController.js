@@ -1,35 +1,42 @@
+const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
 
-// Create Student
+// Create Student - ADMIN
 const createStudent = async (req, res) => {
   try {
     const { name, email, phone, gender, address, courseId } = req.body;
 
     if (!name || !email || !phone || !gender || !courseId) {
       return res.status(400).json({
-        message: "Name, email, phone, gender and course are required"
+        message: "All required fields must be provided",
       });
     }
 
     const existingStudent = await prisma.student.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (existingStudent) {
       return res.status(400).json({
-        message: "Student already exists"
+        message: "Student already exists",
       });
     }
 
     const course = await prisma.course.findUnique({
       where: {
-        id: Number(courseId)
-      }
+        id: Number(courseId),
+      },
     });
 
     if (!course) {
       return res.status(404).json({
-        message: "Course not found"
+        message: "Course not found",
+      });
+    }
+
+    if (course.status !== "ACTIVE") {
+      return res.status(400).json({
+        message: "Only active courses can be selected for a student",
       });
     }
 
@@ -40,25 +47,37 @@ const createStudent = async (req, res) => {
         phone,
         gender,
         address,
-        courseId: Number(courseId)
+        courseId: Number(courseId),
       },
-      include: {
-        course: true
-      }
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        gender: true,
+        address: true,
+        status: true,
+        courseId: true,
+        createdAt: true,
+        updatedAt: true,
+        course: true,
+      },
     });
 
     res.status(201).json({
       message: "Student created successfully",
-      student
+      student,
     });
   } catch (error) {
     console.error("Create Student Error:", error);
-    res.status(500).json({ message: error.message });
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
-
-// Get All Students + Search + Filter + Pagination
+// Get All Students
 const getAllStudents = async (req, res) => {
   try {
     const { search, courseId } = req.query;
@@ -73,37 +92,37 @@ const getAllStudents = async (req, res) => {
           {
             name: {
               contains: search,
-              mode: "insensitive"
-            }
+              mode: "insensitive",
+            },
           },
           {
             email: {
               contains: search,
-              mode: "insensitive"
-            }
-          }
-        ]
+              mode: "insensitive",
+            },
+          },
+        ],
       }),
 
       ...(courseId && {
-        courseId: Number(courseId)
-      })
+        courseId: Number(courseId),
+      }),
     };
 
     const totalStudents = await prisma.student.count({
-      where
+      where,
     });
 
     const students = await prisma.student.findMany({
       where,
       include: {
-        course: true
+        course: true,
       },
       orderBy: {
-        createdAt: "desc"
+        createdAt: "desc",
       },
       skip,
-      take: limit
+      take: limit,
     });
 
     res.status(200).json({
@@ -111,15 +130,16 @@ const getAllStudents = async (req, res) => {
       totalStudents,
       currentPage: page,
       totalPages: Math.ceil(totalStudents / limit),
-      students
+      students,
     });
-
   } catch (error) {
     console.error("Get Students Error:", error);
-    res.status(500).json({ message: error.message });
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
-
 
 // Get Student By ID
 const getStudentById = async (req, res) => {
@@ -128,66 +148,74 @@ const getStudentById = async (req, res) => {
 
     const student = await prisma.student.findUnique({
       where: {
-        id: Number(id)
+        id: Number(id),
       },
       include: {
-        course: true
-      }
+        course: true,
+      },
     });
 
     if (!student) {
       return res.status(404).json({
-        message: "Student not found"
+        message: "Student not found",
       });
     }
 
     res.status(200).json({
       message: "Student fetched successfully",
-      student
+      student,
     });
-
   } catch (error) {
     console.error("Get Student Error:", error);
-    res.status(500).json({ message: error.message });
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
-
 
 // Update Student
 const updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
+
     const { name, email, phone, gender, address, status, courseId } = req.body;
 
     const existingStudent = await prisma.student.findUnique({
       where: {
-        id: Number(id)
-      }
+        id: Number(id),
+      },
     });
 
     if (!existingStudent) {
       return res.status(404).json({
-        message: "Student not found"
+        message: "Student not found",
       });
     }
 
     if (courseId) {
       const course = await prisma.course.findUnique({
         where: {
-          id: Number(courseId)
-        }
+          id: Number(courseId),
+        },
       });
 
       if (!course) {
         return res.status(404).json({
-          message: "Course not found"
+          message: "Course not found",
+        });
+      }
+
+      if (course.status !== "ACTIVE") {
+        return res.status(400).json({
+          message: "Only active courses can be selected for a student",
         });
       }
     }
 
     const student = await prisma.student.update({
       where: {
-        id: Number(id)
+        id: Number(id),
       },
       data: {
         name,
@@ -196,26 +224,28 @@ const updateStudent = async (req, res) => {
         gender,
         address,
         status,
+
         ...(courseId && {
-          courseId: Number(courseId)
-        })
+          courseId: Number(courseId),
+        }),
       },
       include: {
-        course: true
-      }
+        course: true,
+      },
     });
 
     res.status(200).json({
       message: "Student updated successfully",
-      student
+      student,
     });
-
   } catch (error) {
     console.error("Update Student Error:", error);
-    res.status(500).json({ message: error.message });
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
-
 
 // Delete Student
 const deleteStudent = async (req, res) => {
@@ -224,37 +254,164 @@ const deleteStudent = async (req, res) => {
 
     const existingStudent = await prisma.student.findUnique({
       where: {
-        id: Number(id)
-      }
+        id: Number(id),
+      },
     });
 
     if (!existingStudent) {
       return res.status(404).json({
-        message: "Student not found"
+        message: "Student not found",
       });
     }
 
     await prisma.student.delete({
       where: {
-        id: Number(id)
-      }
+        id: Number(id),
+      },
     });
 
     res.status(200).json({
-      message: "Student deleted successfully"
+      message: "Student deleted successfully",
     });
-
   } catch (error) {
     console.error("Delete Student Error:", error);
-    res.status(500).json({ message: error.message });
+
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
+// Get Logged-in Student Profile
+const getStudentProfile = async (req, res) => {
+  try {
+    if (req.user.role !== "STUDENT") {
+      return res.status(403).json({
+        message: "Access denied. Student only.",
+      });
+    }
+
+    const student = await prisma.student.findUnique({
+      where: {
+        id: Number(req.user.id),
+      },
+      include: {
+        course: true,
+      },
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        message: "Student profile not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Student profile fetched successfully",
+      student: {
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        gender: student.gender,
+        address: student.address,
+        status: student.status,
+        course: student.course,
+      },
+    });
+  } catch (error) {
+    console.error("Get Student Profile Error:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+// Student Self Registration
+const registerStudent = async (req, res) => {
+  try {
+    const { name, email, password, phone, gender, address, courseId } =
+      req.body;
+
+    if (!name || !email || !password || !phone || !gender || !courseId) {
+      return res.status(400).json({
+        message: "All required fields must be filled",
+      });
+    }
+
+    const existingStudent = await prisma.student.findUnique({
+      where: { email },
+    });
+
+    if (existingStudent) {
+      return res.status(400).json({
+        message: "Email is already registered",
+      });
+    }
+
+    const course = await prisma.course.findUnique({
+      where: {
+        id: Number(courseId),
+      },
+    });
+
+    if (!course) {
+      return res.status(404).json({
+        message: "Course not found",
+      });
+    }
+
+    if (course.status !== "ACTIVE") {
+      return res.status(400).json({
+        message: "Please select an active course",
+      });
+    }
+
+    // Password is created only during student registration
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const student = await prisma.student.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        phone,
+        gender,
+        address,
+        courseId: Number(courseId),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        gender: true,
+        address: true,
+        status: true,
+        courseId: true,
+      },
+    });
+
+    res.status(201).json({
+      message: "Registration successful. You can now login.",
+      student,
+    });
+  } catch (error) {
+    console.error("Student Registration Error:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
 
 module.exports = {
   createStudent,
+  registerStudent,
   getAllStudents,
   getStudentById,
   updateStudent,
-  deleteStudent
+  deleteStudent,
+  getStudentProfile,
 };

@@ -1,0 +1,144 @@
+/* ================= ATTENDANCE PAGE ================= */
+
+.attendance-page {
+  padding: 30px;
+}
+
+.attendance-page h1 {
+  margin: 0 0 25px;
+  color: #172033;
+  font-size: 2rem;
+}
+
+/* ================= CONTROLS ================= */
+
+.attendance-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  background: #ffffff;
+  padding: 22px;
+  border-radius: 14px;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  margin-bottom: 25px;
+}
+
+.attendance-controls select,
+.attendance-controls input {
+  padding: 12px 14px;
+  border: 1px solid #dbe2ea;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  min-width: 200px;
+}
+
+.attendance-controls select:focus,
+.attendance-controls input:focus {
+  border-color: #2563eb;
+}
+
+.attendance-controls button {
+  padding: 12px 22px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.attendance-controls button:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* ================= TABLE ================= */
+
+.attendance-table-container {
+  background: #ffffff;
+  padding: 22px;
+  border-radius: 14px;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  overflow-x: auto;
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.attendance-table th {
+  background: #f1f5f9;
+  color: #334155;
+  text-align: left;
+  padding: 14px;
+  font-size: 14px;
+}
+
+.attendance-table td {
+  padding: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #475569;
+}
+
+.attendance-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* ================= STATUS SELECT ================= */
+
+.attendance-table select {
+  padding: 8px 12px;
+  border: 1px solid #dbe2ea;
+  border-radius: 7px;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}
+
+.attendance-table select:focus {
+  border-color: #2563eb;
+}
+
+/* ================= SAVE BUTTON ================= */
+
+.save-attendance-btn {
+  margin-top: 22px;
+  padding: 13px 25px;
+  border: none;
+  border-radius: 8px;
+  background: #16a34a;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.save-attendance-btn:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 768px) {
+  .attendance-page {
+    padding: 20px;
+  }
+
+  .attendance-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .attendance-controls select,
+  .attendance-controls input,
+  .attendance-controls button {
+    width: 100%;
+    min-width: auto;
+  }
+}

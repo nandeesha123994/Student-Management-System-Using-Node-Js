@@ -1,0 +1,227 @@
+/* ================= ASK DOUBT PAGE ================= */
+
+.doubt-page {
+  min-height: 100vh;
+  padding: 28px;
+  background: #f5f7fb;
+  box-sizing: border-box;
+}
+
+/* ================= HEADER ================= */
+
+.doubt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  background: #ffffff;
+  border: 1px solid #e7ecf4;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.doubt-header h1 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 2rem;
+}
+
+.doubt-header p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+/* ================= BACK BUTTON ================= */
+
+.doubt-back-btn {
+  padding: 13px 20px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.doubt-back-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.25);
+}
+
+/* ================= CONTENT ================= */
+
+.doubt-content {
+  display: grid;
+  grid-template-columns: 0.9fr 1.4fr;
+  gap: 28px;
+  align-items: start;
+}
+
+/* ================= CARDS ================= */
+
+.doubt-form-card,
+.doubt-history-card {
+  background: #ffffff;
+  border: 1px solid #e7ecf4;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.doubt-form-card h2,
+.doubt-history-card h2 {
+  margin: 0 0 22px;
+  color: #1e293b;
+}
+
+/* ================= TEXTAREA ================= */
+
+.doubt-form-card textarea {
+  width: 100%;
+  min-height: 180px;
+  box-sizing: border-box;
+  padding: 15px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  outline: none;
+  resize: vertical;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.doubt-form-card textarea:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* ================= SUBMIT BUTTON ================= */
+
+.doubt-submit-btn {
+  width: 100%;
+  margin-top: 15px;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.doubt-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.25);
+}
+
+.doubt-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ================= DOUBT LIST ================= */
+
+.doubt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.doubt-card {
+  padding: 20px;
+  border: 1px solid #e5eaf1;
+  border-radius: 15px;
+  background: #f8fafc;
+  position: relative;
+}
+
+.doubt-question strong,
+.doubt-reply strong {
+  color: #1e293b;
+}
+
+.doubt-question p,
+.doubt-reply p {
+  margin: 8px 0 0;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* ================= STATUS ================= */
+
+.doubt-status {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.doubt-pending {
+  color: #a16207;
+  background: #fef3c7;
+}
+
+.doubt-answered {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+/* ================= ADMIN REPLY ================= */
+
+.doubt-reply {
+  margin-top: 18px;
+  padding: 15px;
+  border-radius: 12px;
+  background: #ffffff;
+  border-left: 4px solid #4f46e5;
+}
+
+/* ================= EMPTY / LOADING ================= */
+
+.doubt-empty,
+.doubt-loading {
+  padding: 25px;
+  text-align: center;
+  color: #64748b;
+}
+
+/* ================= TABLET ================= */
+
+@media (max-width: 1000px) {
+  .doubt-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 700px) {
+  .doubt-page {
+    padding: 15px;
+  }
+
+  .doubt-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 22px;
+  }
+
+  .doubt-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .doubt-back-btn {
+    width: 100%;
+  }
+
+  .doubt-form-card,
+  .doubt-history-card {
+    padding: 20px;
+  }
+}

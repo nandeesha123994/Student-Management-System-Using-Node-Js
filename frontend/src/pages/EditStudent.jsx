@@ -3,11 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
+import { useNotification } from "../context/NotificationContext";
 import "../styles/Forms.css";
 
 function EditStudent() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { showNotification } = useNotification();
 
   const [courses, setCourses] = useState([]);
 
@@ -18,7 +20,7 @@ function EditStudent() {
     gender: "",
     address: "",
     status: "ACTIVE",
-    courseId: ""
+    courseId: "",
   });
 
   useEffect(() => {
@@ -35,16 +37,27 @@ function EditStudent() {
           gender: student.gender,
           address: student.address || "",
           status: student.status,
-          courseId: student.courseId
+          courseId: student.courseId,
         });
 
         // Get courses
         const courseResponse = await api.get("/courses");
-        setCourses(courseResponse.data.courses);
+        const activeCourses = (courseResponse.data.courses || []).filter(
+          (course) => course.status === "ACTIVE",
+        );
 
+        const currentCourseStillExists = (
+          courseResponse.data.courses || []
+        ).some((course) => course.id === student.courseId);
+
+        setCourses(
+          currentCourseStillExists
+            ? courseResponse.data.courses
+            : activeCourses,
+        );
       } catch (error) {
         console.error("Get Student Error:", error);
-        alert("Failed to load student data");
+        showNotification("Failed to load student data", "error");
       }
     };
 
@@ -54,7 +67,7 @@ function EditStudent() {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -64,14 +77,16 @@ function EditStudent() {
     try {
       await api.put(`/students/${id}`, {
         ...formData,
-        courseId: Number(formData.courseId)
+        courseId: Number(formData.courseId),
       });
 
-      alert("Student updated successfully");
+      showNotification("Student updated successfully", "success");
       navigate("/students");
-
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to update student");
+      showNotification(
+        error.response?.data?.message || "Failed to update student",
+        "error",
+      );
     }
   };
 
@@ -83,7 +98,20 @@ function EditStudent() {
         <Sidebar />
 
         <main className="dashboard-content form-page">
-          <h1>Edit Student</h1>
+          <div className="form-header">
+            <div>
+              <h1>Edit Student</h1>
+              <p>Update student profile information</p>
+            </div>
+
+            <button
+              type="button"
+              className="back-dashboard-btn"
+              onClick={() => navigate("/students")}
+            >
+              ← Back to Students
+            </button>
+          </div>
 
           <form className="form-container" onSubmit={handleSubmit}>
             <input
@@ -95,7 +123,8 @@ function EditStudent() {
               required
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <input
               type="email"
@@ -106,7 +135,8 @@ function EditStudent() {
               required
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <input
               type="text"
@@ -117,7 +147,8 @@ function EditStudent() {
               required
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <select
               name="gender"
@@ -130,7 +161,8 @@ function EditStudent() {
               <option value="OTHER">Other</option>
             </select>
 
-            <br /><br />
+            <br />
+            <br />
 
             <input
               type="text"
@@ -140,7 +172,8 @@ function EditStudent() {
               onChange={handleChange}
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <select
               name="courseId"
@@ -155,7 +188,8 @@ function EditStudent() {
               ))}
             </select>
 
-            <br /><br />
+            <br />
+            <br />
 
             <select
               name="status"
@@ -166,7 +200,8 @@ function EditStudent() {
               <option value="INACTIVE">Inactive</option>
             </select>
 
-            <br /><br />
+            <br />
+            <br />
 
             <button type="submit">Update Student</button>
           </form>

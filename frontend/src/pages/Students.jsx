@@ -3,20 +3,31 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import { useNotification } from "../context/NotificationContext";
 import "../styles/Students.css";
 
 function Students() {
   const [students, setStudents] = useState([]);
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
+
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const getStudents = async () => {
     try {
-      const response = await api.get("/students");
+      setLoading(true);
+      setError("");
 
+      const response = await api.get("/students");
       setStudents(response.data.students);
     } catch (error) {
       console.error("Get Students Error:", error);
+      setError("Failed to load students. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -25,28 +36,35 @@ function Students() {
   }, []);
 
   const handleDelete = async (id) => {
-  const confirmDelete = window.confirm(
-    "Are you sure you want to delete this student?"
-  );
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this student?",
+    );
 
-  if (!confirmDelete) return;
+    if (!confirmDelete) return;
 
-  try {
-    await api.delete(`/students/${id}`);
+    try {
+      await api.delete(`/students/${id}`);
 
-    alert("Student deleted successfully");
+      showNotification("Student deleted successfully", "success");
+      getStudents();
+    } catch (error) {
+      showNotification(
+        error.response?.data?.message || "Failed to delete student",
+        "error",
+      );
+    }
+  };
 
-    // Refresh student list
-    getStudents();
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch =
+      student.name.toLowerCase().includes(search.toLowerCase()) ||
+      student.email.toLowerCase().includes(search.toLowerCase());
 
-  } catch (error) {
-    alert(error.response?.data?.message || "Failed to delete student");
-  }
-};
-const filteredStudents = students.filter((student) =>
-  student.name.toLowerCase().includes(search.toLowerCase()) ||
-  student.email.toLowerCase().includes(search.toLowerCase())
-);
+    const matchesStatus =
+      statusFilter === "ALL" || student.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div>
@@ -56,56 +74,155 @@ const filteredStudents = students.filter((student) =>
         <Sidebar />
 
         <main className="dashboard-content students-page">
-          <h1>Students</h1>
-          <input
-  type="text"
-  placeholder="Search by name or email..."
-  value={search}
-  onChange={(e) => setSearch(e.target.value)}
-/>
+          {/* Page Header */}
+          <div className="students-page-header">
+            <div>
+              <h1>Students</h1>
+              <p>Manage and view all registered students</p>
+            </div>
 
-<button onClick={() => navigate("/students/add")}>
-  Add Student
-</button>
+            <button
+              className="add-student-btn"
+              onClick={() => navigate("/students/add")}
+            >
+              + Add Student
+            </button>
+          </div>
 
-<br /><br />
+          {/* Search and Filter */}
+          <div className="students-toolbar-card">
+            <div className="search-box">
+              <span>⌕</span>
 
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Course</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
 
-            <tbody>
-              {filteredStudents.map((student) => (
-                <tr key={student.id}>
-                  <td>{student.id}</td>
-                  <td>{student.name}</td>
-                  <td>{student.email}</td>
-                  <td>{student.phone}</td>
-                  <td>{student.course?.name}</td>
-                  <td>{student.status}</td>
-                  <td>
-  <button onClick={() => navigate(`/students/edit/${student.id}`)}>
-    Edit
-  </button>
+            <select
+              className="status-filter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="ALL">All Students</option>
+              <option value="ACTIVE">Active Students</option>
+              <option value="INACTIVE">Inactive Students</option>
+            </select>
+          </div>
 
-  <button onClick={() => handleDelete(student.id)}>
-    Delete
-  </button>
-</td>
+          {/* Students Table */}
+          <div className="students-table-card">
+            <div className="table-card-header">
+              <div>
+                <h2>All Students</h2>
+                <p>
+                  {filteredStudents.length} student
+                  {filteredStudents.length !== 1 ? "s" : ""} found
+                </p>
+              </div>
+            </div>
 
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            {loading ? (
+              <div className="students-message">Loading students...</div>
+            ) : error ? (
+              <div className="students-message error-message">{error}</div>
+            ) : (
+              <div className="students-table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Student</th>
+                      <th>Phone</th>
+                      <th>Address</th>
+                      <th>Course</th>
+                      <th>Status</th>
+                      <th className="actions-heading">Actions</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {filteredStudents.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="no-students">
+                          No students found
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredStudents.map((student) => (
+                        <tr key={student.id}>
+                          <td className="student-id">#{student.id}</td>
+
+                          <td>
+                            <div className="student-info">
+                              <div className="student-avatar">
+                                {student.name.charAt(0).toUpperCase()}
+                              </div>
+
+                              <div>
+                                <div className="student-name">
+                                  {student.name}
+                                </div>
+
+                                <div className="student-email">
+                                  {student.email}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td>{student.phone}</td>
+
+                          <td>{student.address || "N/A"}</td>
+
+                          <td>
+                            <span className="course-name">
+                              {student.course?.name || "N/A"}
+                            </span>
+                          </td>
+
+                          <td>
+                            <span
+                              className={`student-status ${
+                                student.status === "ACTIVE"
+                                  ? "student-active"
+                                  : "student-inactive"
+                              }`}
+                            >
+                              {student.status}
+                            </span>
+                          </td>
+
+                          <td>
+                            <div className="action-buttons">
+                              <button
+                                className="edit-btn"
+                                onClick={() =>
+                                  navigate(`/students/edit/${student.id}`)
+                                }
+                              >
+                                Edit
+                              </button>
+
+                              <button
+                                className="delete-btn"
+                                onClick={() => handleDelete(student.id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>

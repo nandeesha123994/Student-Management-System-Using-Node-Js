@@ -7,15 +7,23 @@ function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("role");
 
     navigate("/");
   };
 
   return (
     <nav className="navbar">
-      <h2>Student Management System</h2>
+      <div className="navbar-brand">
+        <div className="brand-icon">S</div>
 
-      <button onClick={handleLogout}>
+        <div>
+          <h2>Student Management</h2>
+          <span>Admin Portal</span>
+        </div>
+      </div>
+
+      <button className="logout-btn" onClick={handleLogout}>
         Logout
       </button>
     </nav>

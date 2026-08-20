@@ -5,22 +5,50 @@ const authRoutes = require("./routes/authRoutes");
 const studentRoutes = require("./routes/studentRoutes");
 const courseRoutes = require("./routes/courseRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const attendanceRoutes = require("./routes/attendanceRoutes");
+const announcementRoutes = require("./routes/announcementRoutes");
+const leaveRoutes = require("./routes/leaveRoutes");
+const doubtRoutes = require("./routes/doubtRoutes");
+
 const errorMiddleware = require("./middleware/errorMiddleware");
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/students", studentRoutes);
-app.use("/api/courses", courseRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use(errorMiddleware);
+// ================= ROUTES =================
 
+// Authentication
+app.use("/api/auth", authRoutes);
+
+// Students
+app.use("/api/students", studentRoutes);
+
+// Courses
+app.use("/api/courses", courseRoutes);
+
+// Dashboard
+app.use("/api/dashboard", dashboardRoutes);
+
+// Attendance
+app.use("/api/attendance", attendanceRoutes);
+
+// Announcements
+app.use("/api/announcements", announcementRoutes);
+
+// Leave Requests
+app.use("/api/leave-requests", leaveRoutes);
+
+app.use("/api/doubts", doubtRoutes);
+
+// Home Route
 app.get("/", (req, res) => {
   res.send("Student Management System Backend is Running");
 });
+
+// Error Middleware - keep this LAST
+app.use(errorMiddleware);
 
 module.exports = app;

@@ -2,6 +2,49 @@
   width: 100%;
 }
 
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.form-header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #1f2937;
+}
+
+.form-header p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.back-dashboard-btn {
+  padding: 11px 20px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.back-dashboard-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+}
+
 .form-container {
   width: 100%;
   max-width: 600px;
@@ -30,9 +73,62 @@
 }
 
 .form-container button {
-  padding: 10px 20px;
-  cursor: pointer;
-  font-size: 16px;
+  width: 100%;
+  padding: 12px;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.form-container button:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+.form-container button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .form-page {
+    padding: 0 10px;
+  }
+
+  .form-container {
+    max-width: 100%;
+    padding: 20px 15px;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-container input,
+  .form-container select,
+  .form-container textarea {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .form-container button {
+    width: 100%;
+    font-size: 15px;
+  }
+}
+
+.form-field {
+  width: 100%;
+}
+
+.field-error {
+  display: block;
+  margin-top: 5px;
+  margin-left: 4px;
+  font-size: 13px;
+  color: #dc2626;
 }

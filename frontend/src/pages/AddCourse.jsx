@@ -3,22 +3,24 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
+import { useNotification } from "../context/NotificationContext";
 import "../styles/Forms.css";
 
 function AddCourse() {
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     duration: "",
-    status: "ACTIVE"
+    status: "ACTIVE",
   });
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -28,11 +30,13 @@ function AddCourse() {
     try {
       await api.post("/courses", formData);
 
-      alert("Course added successfully");
+      showNotification("Course added successfully", "success");
       navigate("/courses");
-
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to add course");
+      showNotification(
+        error.response?.data?.message || "Failed to add course",
+        "error",
+      );
     }
   };
 
@@ -44,7 +48,20 @@ function AddCourse() {
         <Sidebar />
 
         <main className="dashboard-content form-page">
-          <h1>Add Course</h1>
+          <div className="form-header">
+            <div>
+              <h1>Add Course</h1>
+              <p>Create a new course</p>
+            </div>
+
+            <button
+              type="button"
+              className="back-dashboard-btn"
+              onClick={() => navigate("/courses")}
+            >
+              ← Back to Courses
+            </button>
+          </div>
 
           <form className="form-container" onSubmit={handleSubmit}>
             <input
@@ -56,7 +73,8 @@ function AddCourse() {
               required
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <textarea
               name="description"
@@ -65,7 +83,8 @@ function AddCourse() {
               onChange={handleChange}
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <input
               type="text"
@@ -76,7 +95,8 @@ function AddCourse() {
               required
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <select
               name="status"
@@ -87,7 +107,8 @@ function AddCourse() {
               <option value="INACTIVE">Inactive</option>
             </select>
 
-            <br /><br />
+            <br />
+            <br />
 
             <button type="submit">Add Course</button>
           </form>

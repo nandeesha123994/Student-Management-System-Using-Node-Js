@@ -1,20 +1,15 @@
 const { body, validationResult } = require("express-validator");
 
 const validateCourse = [
-  body("name")
-    .trim()
-    .notEmpty()
-    .withMessage("Course name is required"),
+  body("name").trim().notEmpty().withMessage("Course name is required"),
 
   body("description")
+    .optional({ checkFalsy: true })
     .trim()
-    .notEmpty()
-    .withMessage("Description is required"),
+    .isString()
+    .withMessage("Description must be a string"),
 
-  body("duration")
-    .trim()
-    .notEmpty()
-    .withMessage("Duration is required"),
+  body("duration").trim().notEmpty().withMessage("Duration is required"),
 
   body("status")
     .optional()
@@ -27,12 +22,12 @@ const validateCourse = [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         message: "Validation failed",
-        errors: errors.array()
+        errors: errors.array(),
       });
     }
 
     next();
-  }
+  },
 ];
 
 module.exports = validateCourse;

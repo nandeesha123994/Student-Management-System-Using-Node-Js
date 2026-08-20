@@ -3,17 +3,19 @@ import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
+import { useNotification } from "../context/NotificationContext";
 import "../styles/Forms.css";
 
 function EditCourse() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { showNotification } = useNotification();
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     duration: "",
-    status: "ACTIVE"
+    status: "ACTIVE",
   });
 
   useEffect(() => {
@@ -26,11 +28,11 @@ function EditCourse() {
           name: course.name,
           description: course.description || "",
           duration: course.duration,
-          status: course.status
+          status: course.status,
         });
       } catch (error) {
         console.error("Get Course Error:", error);
-        alert("Failed to load course data");
+        showNotification("Failed to load course data", "error");
       }
     };
 
@@ -40,7 +42,7 @@ function EditCourse() {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -50,10 +52,13 @@ function EditCourse() {
     try {
       await api.put(`/courses/${id}`, formData);
 
-      alert("Course updated successfully");
+      showNotification("Course updated successfully", "success");
       navigate("/courses");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to update course");
+      showNotification(
+        error.response?.data?.message || "Failed to update course",
+        "error",
+      );
     }
   };
 
@@ -65,7 +70,20 @@ function EditCourse() {
         <Sidebar />
 
         <main className="dashboard-content form-page">
-          <h1>Edit Course</h1>
+          <div className="form-header">
+            <div>
+              <h1>Edit Course</h1>
+              <p>Update course details and status</p>
+            </div>
+
+            <button
+              type="button"
+              className="back-dashboard-btn"
+              onClick={() => navigate("/courses")}
+            >
+              ← Back to Courses
+            </button>
+          </div>
 
           <form className="form-container" onSubmit={handleSubmit}>
             <input
@@ -77,7 +95,8 @@ function EditCourse() {
               required
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <textarea
               name="description"
@@ -86,7 +105,8 @@ function EditCourse() {
               onChange={handleChange}
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <input
               type="text"
@@ -97,7 +117,8 @@ function EditCourse() {
               required
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <select
               name="status"
@@ -108,7 +129,8 @@ function EditCourse() {
               <option value="INACTIVE">Inactive</option>
             </select>
 
-            <br /><br />
+            <br />
+            <br />
 
             <button type="submit">Update Course</button>
           </form>

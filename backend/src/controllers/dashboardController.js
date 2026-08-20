@@ -8,14 +8,24 @@ const getDashboardStats = async (req, res) => {
 
     const activeStudents = await prisma.student.count({
       where: {
-        status: "ACTIVE"
-      }
+        status: "ACTIVE",
+      },
     });
 
     const inactiveStudents = await prisma.student.count({
       where: {
-        status: "INACTIVE"
-      }
+        status: "INACTIVE",
+      },
+    });
+
+    const recentStudents = await prisma.student.findMany({
+      take: 5,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        course: true,
+      },
     });
 
     res.status(200).json({
@@ -24,15 +34,21 @@ const getDashboardStats = async (req, res) => {
         totalStudents,
         totalCourses,
         activeStudents,
-        inactiveStudents
-      }
+        inactiveStudents,
+        recentStudents: recentStudents.map((student) => ({
+          id: student.id,
+          name: student.name,
+          email: student.email,
+          course: student.course ? student.course.name : "N/A",
+          status: student.status,
+        })),
+      },
     });
-
   } catch (error) {
     console.error("Dashboard Error:", error);
 
     res.status(500).json({
-      message: error.message
+      message: error.message,
     });
   }
 };
