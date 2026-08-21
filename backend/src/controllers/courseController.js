@@ -43,7 +43,37 @@ const createCourse = async (req, res) => {
 // Get All Courses
 const getAllCourses = async (req, res) => {
   try {
+    const { search } = req.query;
+
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    const where = {
+      ...(search && {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            description: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        ],
+      }),
+    };
+
+    const totalCourses = await prisma.course.count({
+      where,
+    });
+
     const courses = await prisma.course.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
@@ -52,10 +82,15 @@ const getAllCourses = async (req, res) => {
           },
         },
       },
+      skip,
+      take: limit,
     });
 
     res.status(200).json({
       message: "Courses fetched successfully",
+      totalCourses,
+      currentPage: page,
+      totalPages: Math.ceil(totalCourses / limit),
       courses: courses.map((course) => ({
         ...course,
         studentCount: course._count?.students ?? 0,

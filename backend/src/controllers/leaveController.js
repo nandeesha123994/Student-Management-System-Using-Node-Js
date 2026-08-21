@@ -138,7 +138,7 @@ const getAllLeaves = async (req, res) => {
 const updateLeaveStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, adminReply } = req.body;
 
     if (!["APPROVED", "REJECTED"].includes(status)) {
       return res.status(400).json({
@@ -146,13 +146,16 @@ const updateLeaveStatus = async (req, res) => {
       });
     }
 
+    const updateData = { status };
+    if (adminReply !== undefined) {
+      updateData.adminReply = adminReply ? adminReply.trim() : null;
+    }
+
     const leaveRequest = await prisma.leaveRequest.update({
       where: {
         id: Number(id),
       },
-      data: {
-        status,
-      },
+      data: updateData,
     });
 
     return res.status(200).json({

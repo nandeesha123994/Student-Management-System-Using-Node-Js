@@ -8,21 +8,40 @@ import "../styles/Courses.css";
 
 function Courses() {
   const [courses, setCourses] = useState([]);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
+
+  const limit = 5;
+
+  // Search
   const [search, setSearch] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
   const { showNotification } = useNotification();
 
-  // Get all courses
+  // Get courses with Search + Pagination
   const getCourses = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await api.get("/courses");
+      const response = await api.get("/courses", {
+        params: {
+          search: search,
+          page: currentPage,
+          limit: limit,
+        },
+      });
+
       setCourses(response.data.courses);
+      setTotalPages(response.data.totalPages);
+      setTotalCourses(response.data.totalCourses);
     } catch (error) {
       console.error("Get Courses Error:", error);
       setError("Failed to load courses. Please try again later.");
@@ -31,9 +50,14 @@ function Courses() {
     }
   };
 
+  // Search and page change
   useEffect(() => {
-    getCourses();
-  }, []);
+    const delaySearch = setTimeout(() => {
+      getCourses();
+    }, 500);
+
+    return () => clearTimeout(delaySearch);
+  }, [search, currentPage]);
 
   // Delete course
   const handleDelete = async (id) => {
@@ -56,13 +80,6 @@ function Courses() {
       );
     }
   };
-
-  // Search courses
-  const filteredCourses = courses.filter(
-    (course) =>
-      course.name.toLowerCase().includes(search.toLowerCase()) ||
-      course.description?.toLowerCase().includes(search.toLowerCase()),
-  );
 
   return (
     <div>
@@ -93,7 +110,10 @@ function Courses() {
               type="text"
               placeholder="Search courses..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
 
@@ -103,81 +123,108 @@ function Courses() {
           ) : error ? (
             <p className="courses-message error-message">{error}</p>
           ) : (
-            <div className="courses-table-card">
-              <div className="courses-table-wrap">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Course Name</th>
-                      <th>Description</th>
-                      <th>Duration</th>
-                      <th>Students</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {filteredCourses.length === 0 ? (
+            <>
+              <div className="courses-table-card">
+                <div className="courses-table-wrap">
+                  <table className="data-table">
+                    <thead>
                       <tr>
-                        <td colSpan="7" className="no-courses">
-                          No courses found
-                        </td>
+                        <th>ID</th>
+                        <th>Course Name</th>
+                        <th>Description</th>
+                        <th>Duration</th>
+                        <th>Students</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                       </tr>
-                    ) : (
-                      filteredCourses.map((course) => (
-                        <tr key={course.id}>
-                          <td>{course.id}</td>
+                    </thead>
 
-                          <td className="course-name">{course.name}</td>
-
-                          <td className="course-description">
-                            {course.description || "No description"}
-                          </td>
-
-                          <td>{course.duration}</td>
-
-                          <td>{course.studentCount ?? 0}</td>
-
-                          <td>
-                            <span
-                              className={`course-status ${
-                                course.status === "ACTIVE"
-                                  ? "course-active"
-                                  : "course-inactive"
-                              }`}
-                            >
-                              {course.status}
-                            </span>
-                          </td>
-
-                          <td>
-                            <div className="action-buttons">
-                              <button
-                                className="edit-btn"
-                                onClick={() =>
-                                  navigate(`/courses/edit/${course.id}`)
-                                }
-                              >
-                                Edit
-                              </button>
-
-                              <button
-                                className="delete-btn"
-                                onClick={() => handleDelete(course.id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
+                    <tbody>
+                      {courses.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="no-courses">
+                            No courses found
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        courses.map((course, index) => (
+                          <tr key={course.id}>
+                            <td>{(currentPage - 1) * limit + index + 1}</td>
+
+                            <td className="course-name">{course.name}</td>
+
+                            <td className="course-description">
+                              {course.description || "No description"}
+                            </td>
+
+                            <td>{course.duration}</td>
+
+                            <td>{course.studentCount ?? 0}</td>
+
+                            <td>
+                              <span
+                                className={`course-status ${
+                                  course.status === "ACTIVE"
+                                    ? "course-active"
+                                    : "course-inactive"
+                                }`}
+                              >
+                                {course.status}
+                              </span>
+                            </td>
+
+                            <td>
+                              <div className="action-buttons">
+                                <button
+                                  className="edit-btn"
+                                  onClick={() =>
+                                    navigate(`/courses/edit/${course.id}`)
+                                  }
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  className="delete-btn"
+                                  onClick={() => handleDelete(course.id)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    className="pagination-btn"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                  >
+                    ← Previous
+                  </button>
+
+                  <span className="pagination-info">
+                    Page {currentPage} of {totalPages} ({totalCourses} courses)
+                  </span>
+
+                  <button
+                    className="pagination-btn"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>

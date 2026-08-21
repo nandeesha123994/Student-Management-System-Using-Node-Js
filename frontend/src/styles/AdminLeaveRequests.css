@@ -275,6 +275,65 @@
   overflow-wrap: anywhere;
 }
 
+/* ================= ADMIN REPLY DISPLAY & INPUT ================= */
+
+.admin-leave-reply-display {
+  margin-top: 15px;
+  padding: 16px;
+
+  background: #f0fdf4;
+  border-left: 4px solid #22c55e;
+  border-radius: 10px;
+}
+
+.admin-leave-reply-display strong {
+  color: #166534;
+}
+
+.admin-leave-reply-display p {
+  margin: 6px 0 0;
+
+  color: #15803d;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+.admin-leave-reply-input {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-leave-reply-input label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.admin-leave-reply-input textarea {
+  width: 100%;
+  padding: 12px;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #1e293b;
+  background: #ffffff;
+  outline: none;
+
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-leave-reply-input textarea:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
 /* ================= FOOTER ================= */
 
 .admin-leave-footer {

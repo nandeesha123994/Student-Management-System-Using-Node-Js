@@ -8,6 +8,11 @@ import "../styles/Students.css";
 
 function Students() {
   const [students, setStudents] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalStudents, setTotalStudents] = useState(0);
+
+  const limit = 5;
   const navigate = useNavigate();
   const { showNotification } = useNotification();
 
@@ -21,8 +26,17 @@ function Students() {
       setLoading(true);
       setError("");
 
-      const response = await api.get("/students");
+      const response = await api.get("/students", {
+        params: {
+          search: search,
+          page: currentPage,
+          limit: limit,
+        },
+      });
+
       setStudents(response.data.students);
+      setTotalPages(response.data.totalPages);
+      setTotalStudents(response.data.totalStudents);
     } catch (error) {
       console.error("Get Students Error:", error);
       setError("Failed to load students. Please try again later.");
@@ -30,10 +44,13 @@ function Students() {
       setLoading(false);
     }
   };
-
   useEffect(() => {
-    getStudents();
-  }, []);
+    const delaySearch = setTimeout(() => {
+      getStudents();
+    }, 500);
+
+    return () => clearTimeout(delaySearch);
+  }, [search, currentPage]);
 
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
@@ -56,14 +73,7 @@ function Students() {
   };
 
   const filteredStudents = students.filter((student) => {
-    const matchesSearch =
-      student.name.toLowerCase().includes(search.toLowerCase()) ||
-      student.email.toLowerCase().includes(search.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "ALL" || student.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
+    return statusFilter === "ALL" || student.status === statusFilter;
   });
 
   return (
@@ -98,7 +108,10 @@ function Students() {
                 type="text"
                 placeholder="Search by name or email..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
 
@@ -119,8 +132,8 @@ function Students() {
               <div>
                 <h2>All Students</h2>
                 <p>
-                  {filteredStudents.length} student
-                  {filteredStudents.length !== 1 ? "s" : ""} found
+                  {totalStudents} student
+                  {totalStudents !== 1 ? "s" : ""} found
                 </p>
               </div>
             </div>
@@ -152,9 +165,11 @@ function Students() {
                         </td>
                       </tr>
                     ) : (
-                      filteredStudents.map((student) => (
+                      filteredStudents.map((student, index) => (
                         <tr key={student.id}>
-                          <td className="student-id">#{student.id}</td>
+                          <td className="student-id">
+                            {(currentPage - 1) * limit + index + 1}
+                          </td>
 
                           <td>
                             <div className="student-info">
@@ -223,6 +238,30 @@ function Students() {
               </div>
             )}
           </div>
+          {/* Pagination */}
+          {!loading && !error && totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="pagination-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+              >
+                ← Previous
+              </button>
+
+              <span className="pagination-info">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                className="pagination-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+              >
+                Next →
+              </button>
+            </div>
+          )}
         </main>
       </div>
     </div>

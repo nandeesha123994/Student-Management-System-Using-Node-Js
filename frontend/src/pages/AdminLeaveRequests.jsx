@@ -11,6 +11,7 @@ function AdminLeaveRequests() {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [adminReplies, setAdminReplies] = useState({});
 
   // Fetch all leave requests
   const fetchLeaveRequests = async () => {
@@ -41,12 +42,18 @@ function AdminLeaveRequests() {
     try {
       setUpdatingId(id);
 
-      await api.put(`/leave-requests/${id}`, {
+      const payload = {
         status: "APPROVED",
-      });
+      };
+      if (adminReplies[id]?.trim()) {
+        payload.adminReply = adminReplies[id].trim();
+      }
+
+      await api.put(`/leave-requests/${id}`, payload);
 
       showNotification("Leave request approved successfully", "success");
 
+      setAdminReplies((prev) => ({ ...prev, [id]: "" }));
       fetchLeaveRequests();
     } catch (error) {
       showNotification(
@@ -63,12 +70,18 @@ function AdminLeaveRequests() {
     try {
       setUpdatingId(id);
 
-      await api.put(`/leave-requests/${id}`, {
+      const payload = {
         status: "REJECTED",
-      });
+      };
+      if (adminReplies[id]?.trim()) {
+        payload.adminReply = adminReplies[id].trim();
+      }
+
+      await api.put(`/leave-requests/${id}`, payload);
 
       showNotification("Leave request rejected successfully", "success");
 
+      setAdminReplies((prev) => ({ ...prev, [id]: "" }));
       fetchLeaveRequests();
     } catch (error) {
       showNotification(
@@ -153,6 +166,30 @@ function AdminLeaveRequests() {
                   <strong>Reason:</strong>
                   <p>{leave.reason}</p>
                 </div>
+
+                {leave.adminReply && (
+                  <div className="admin-leave-reply-display">
+                    <strong>Admin Reply:</strong>
+                    <p>{leave.adminReply}</p>
+                  </div>
+                )}
+
+                {leave.status === "PENDING" && (
+                  <div className="admin-leave-reply-input">
+                    <label>Admin Reply (Optional):</label>
+                    <textarea
+                      placeholder="Type optional reply or remark..."
+                      value={adminReplies[leave.id] || ""}
+                      onChange={(e) =>
+                        setAdminReplies((prev) => ({
+                          ...prev,
+                          [leave.id]: e.target.value,
+                        }))
+                      }
+                      rows="2"
+                    />
+                  </div>
+                )}
 
                 <div className="admin-leave-footer">
                   <span>Requested on: {formatDate(leave.createdAt)}</span>

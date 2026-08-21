@@ -107,14 +107,15 @@ model Announcement {
 }
 
 model LeaveRequest {
-  id        Int      @id @default(autoincrement())
-  studentId Int
-  fromDate  DateTime
-  toDate    DateTime
-  reason    String
-  status    String   @default("PENDING")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  fromDate   DateTime
+  toDate     DateTime
+  reason     String
+  status     String   @default("PENDING")
+  adminReply String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }

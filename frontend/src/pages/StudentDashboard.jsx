@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useNotification } from "../context/NotificationContext";
+import Chatbot from "../components/Chatbot";
 import "../styles/StudentDashboard.css";
 
 function StudentDashboard() {
@@ -291,6 +292,9 @@ function StudentDashboard() {
           </div>
         </div>
       </section>
+
+      {/* STUDENT AI CHATBOT */}
+      <Chatbot />
     </main>
   );
 }

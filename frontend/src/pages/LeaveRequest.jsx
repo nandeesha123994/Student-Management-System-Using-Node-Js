@@ -182,6 +182,13 @@ function LeaveRequest() {
                     </span>
                   </div>
 
+                  {leave.adminReply && (
+                    <div className="leave-admin-reply">
+                      <strong>Admin Reply:</strong>
+                      <p>{leave.adminReply}</p>
+                    </div>
+                  )}
+
                   <div className="leave-request-footer">
                     Requested on: {formatDate(leave.createdAt)}
                   </div>

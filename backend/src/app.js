@@ -9,6 +9,7 @@ const attendanceRoutes = require("./routes/attendanceRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
 const leaveRoutes = require("./routes/leaveRoutes");
 const doubtRoutes = require("./routes/doubtRoutes");
+const chatbotRoutes = require("./routes/chatbotRoutes");
 
 const errorMiddleware = require("./middleware/errorMiddleware");
 
@@ -42,6 +43,9 @@ app.use("/api/announcements", announcementRoutes);
 app.use("/api/leave-requests", leaveRoutes);
 
 app.use("/api/doubts", doubtRoutes);
+
+// Chatbot (Student AI Assistant)
+app.use("/api/chatbot", chatbotRoutes);
 
 // Home Route
 app.get("/", (req, res) => {
