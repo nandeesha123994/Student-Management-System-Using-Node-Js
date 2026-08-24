@@ -10,6 +10,7 @@ function Register() {
 
   const [courses, setCourses] = useState([]);
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -25,9 +26,16 @@ function Register() {
   useEffect(() => {
     const getCourses = async () => {
       try {
-        const response = await api.get("/courses");
+        // Get more courses instead of the default 5
+        const response = await api.get("/courses", {
+          params: {
+            page: 1,
+            limit: 100,
+          },
+        });
 
-        const activeCourses = response.data.courses.filter(
+        // Filter only ACTIVE courses
+        const activeCourses = (response.data.courses || []).filter(
           (course) => course.status === "ACTIVE",
         );
 
@@ -205,15 +213,28 @@ function Register() {
 
               {/* Password */}
               <label>Password</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Create a password"
-                value={formData.password}
-                onChange={handleChange}
-                autoComplete="new-password"
-                className={errors.password ? "input-error" : ""}
-              />
+
+              <div className="password-input-wrapper">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                  className={errors.password ? "input-error" : ""}
+                />
+
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+
               {errors.password && (
                 <small className="field-error">{errors.password}</small>
               )}

@@ -10,18 +10,35 @@ function AskDoubt() {
 
   const [question, setQuestion] = useState("");
   const [doubts, setDoubts] = useState([]);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const limit = 5;
+
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
   const studentId = localStorage.getItem("studentId");
 
-  // Get student's doubts
+  // Get student's doubts with pagination
   const fetchMyDoubts = async () => {
     try {
-      const response = await api.get(`/doubts/student/${studentId}`);
-      setDoubts(response.data || []);
+      setPageLoading(true);
+
+      const response = await api.get(`/doubts/student/${studentId}`, {
+        params: {
+          page: currentPage,
+          limit: limit,
+        },
+      });
+
+      setDoubts(response.data.doubts || []);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
       console.error("Fetch Doubts Error:", error);
+
       showNotification(
         error.response?.data?.message || "Failed to fetch doubts",
         "error",
@@ -31,13 +48,14 @@ function AskDoubt() {
     }
   };
 
+  // Fetch doubts when page changes
   useEffect(() => {
     if (studentId) {
       fetchMyDoubts();
     } else {
       setPageLoading(false);
     }
-  }, []);
+  }, [currentPage, studentId]);
 
   // Submit doubt
   const handleSubmit = async (e) => {
@@ -64,7 +82,14 @@ function AskDoubt() {
       showNotification("Doubt submitted successfully", "success");
 
       setQuestion("");
-      fetchMyDoubts();
+
+      // After submitting, go to first page
+      setCurrentPage(1);
+
+      // If already on page 1, refresh manually
+      if (currentPage === 1) {
+        fetchMyDoubts();
+      }
     } catch (error) {
       console.error("Submit Doubt Error:", error);
 
@@ -74,6 +99,20 @@ function AskDoubt() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Previous page
+  const handlePrevious = () => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
+  // Next page
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage((prev) => prev + 1);
     }
   };
 
@@ -127,33 +166,55 @@ function AskDoubt() {
           {doubts.length === 0 ? (
             <p className="doubt-empty">You haven't asked any doubts yet.</p>
           ) : (
-            <div className="doubt-list">
-              {doubts.map((doubt) => (
-                <div className="doubt-card" key={doubt.id}>
-                  <div className="doubt-question">
-                    <strong>❓ Your Question</strong>
-                    <p>{doubt.question}</p>
-                  </div>
+            <>
+              <div className="doubt-list">
+                {doubts.map((doubt) => (
+                  <div className="doubt-card" key={doubt.id}>
+                    <div className="doubt-question">
+                      <strong>❓ Your Question</strong>
+                      <p>{doubt.question}</p>
+                    </div>
 
-                  <span
-                    className={`doubt-status ${
-                      doubt.status === "ANSWERED"
-                        ? "doubt-answered"
-                        : "doubt-pending"
-                    }`}
-                  >
-                    {doubt.status}
+                    <span
+                      className={`doubt-status ${
+                        doubt.status === "ANSWERED"
+                          ? "doubt-answered"
+                          : "doubt-pending"
+                      }`}
+                    >
+                      {doubt.status}
+                    </span>
+
+                    {doubt.reply && (
+                      <div className="doubt-reply">
+                        <strong>💬 Admin Reply</strong>
+                        <p>{doubt.reply}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* PAGINATION */}
+              {totalPages > 1 && (
+                <div className="doubt-pagination">
+                  <button onClick={handlePrevious} disabled={currentPage === 1}>
+                    ← Previous
+                  </button>
+
+                  <span>
+                    Page {currentPage} of {totalPages}
                   </span>
 
-                  {doubt.reply && (
-                    <div className="doubt-reply">
-                      <strong>💬 Admin Reply</strong>
-                      <p>{doubt.reply}</p>
-                    </div>
-                  )}
+                  <button
+                    onClick={handleNext}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next →
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </section>
       </div>

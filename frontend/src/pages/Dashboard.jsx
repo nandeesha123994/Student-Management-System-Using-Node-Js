@@ -118,7 +118,7 @@ function Dashboard() {
             <div className="section-header">
               <div>
                 <h2>Recent Students</h2>
-                <p>Latest registered students in the system</p>
+                <p>Latest 5 registered students in the system</p>
               </div>
 
               <span className="student-count">

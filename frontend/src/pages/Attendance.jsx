@@ -18,7 +18,11 @@ function Attendance() {
   useEffect(() => {
     const getCourses = async () => {
       try {
-        const response = await api.get("/courses");
+        const response = await api.get("/courses", {
+          params: {
+            limit: 100,
+          },
+        });
 
         const activeCourses = (response.data.courses || []).filter(
           (course) => course.status === "ACTIVE",

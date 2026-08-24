@@ -8,6 +8,7 @@ import "../styles/Forms.css";
 
 function AddCourse() {
   const navigate = useNavigate();
+  const [errors, setErrors] = useState({});
   const { showNotification } = useNotification();
 
   const [formData, setFormData] = useState({
@@ -18,14 +19,46 @@ function AddCourse() {
   });
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+
+    // Remove error when user starts typing
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: "",
+      });
+    }
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Course name is required";
+    }
+
+    if (!formData.duration.trim()) {
+      newErrors.duration = "Course duration is required";
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check validation before API call
+    if (!validateForm()) {
+      return;
+    }
 
     try {
       await api.post("/courses", formData);
@@ -64,51 +97,55 @@ function AddCourse() {
           </div>
 
           <form className="form-container" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              name="name"
-              placeholder="Course Name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
+            {/* Course Name */}
+            <div className="form-field">
+              <input
+                type="text"
+                name="name"
+                placeholder="Course Name"
+                value={formData.name}
+                onChange={handleChange}
+              />
 
-            <br />
-            <br />
+              {errors.name && <p className="field-error">{errors.name}</p>}
+            </div>
 
-            <textarea
-              name="description"
-              placeholder="Course Description"
-              value={formData.description}
-              onChange={handleChange}
-            />
+            {/* Description */}
+            <div className="form-field">
+              <textarea
+                name="description"
+                placeholder="Course Description"
+                value={formData.description}
+                onChange={handleChange}
+              />
+            </div>
 
-            <br />
-            <br />
+            {/* Duration */}
+            <div className="form-field">
+              <input
+                type="text"
+                name="duration"
+                placeholder="Duration (Example: 6 Months)"
+                value={formData.duration}
+                onChange={handleChange}
+              />
 
-            <input
-              type="text"
-              name="duration"
-              placeholder="Duration (Example: 6 Months)"
-              value={formData.duration}
-              onChange={handleChange}
-              required
-            />
+              {errors.duration && (
+                <p className="field-error">{errors.duration}</p>
+              )}
+            </div>
 
-            <br />
-            <br />
-
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-
-            <br />
-            <br />
+            {/* Status */}
+            <div className="form-field">
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
 
             <button type="submit">Add Course</button>
           </form>

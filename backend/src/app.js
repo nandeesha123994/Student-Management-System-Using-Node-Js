@@ -42,6 +42,7 @@ app.use("/api/announcements", announcementRoutes);
 // Leave Requests
 app.use("/api/leave-requests", leaveRoutes);
 
+//For Doubts
 app.use("/api/doubts", doubtRoutes);
 
 // Chatbot (Student AI Assistant)
@@ -52,7 +53,7 @@ app.get("/", (req, res) => {
   res.send("Student Management System Backend is Running");
 });
 
-// Error Middleware - keep this LAST
+// Error Middleware
 app.use(errorMiddleware);
 
 module.exports = app;

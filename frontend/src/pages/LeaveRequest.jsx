@@ -11,17 +11,33 @@ function LeaveRequest() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [reason, setReason] = useState("");
+
   const [leaveRequests, setLeaveRequests] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const limit = 5;
+
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
 
-  // Get student's leave requests
+  // Get student's leave requests with pagination
   const fetchLeaveRequests = async () => {
     try {
-      const response = await api.get("/leave-requests/my-leaves");
+      setPageLoading(true);
+
+      const response = await api.get("/leave-requests/my-leaves", {
+        params: {
+          page: currentPage,
+          limit: limit,
+        },
+      });
+
       setLeaveRequests(response.data.leaveRequests || []);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
       console.error("Fetch Leave Requests Error:", error);
+
       showNotification(
         error.response?.data?.message || "Failed to fetch leave requests",
         "error",
@@ -31,9 +47,10 @@ function LeaveRequest() {
     }
   };
 
+  // Fetch data when page changes
   useEffect(() => {
     fetchLeaveRequests();
-  }, []);
+  }, [currentPage]);
 
   // Submit leave request
   const handleSubmit = async (e) => {
@@ -65,8 +82,12 @@ function LeaveRequest() {
       setToDate("");
       setReason("");
 
-      // Refresh leave requests
-      fetchLeaveRequests();
+      // Go to first page to show the latest request
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        fetchLeaveRequests();
+      }
     } catch (error) {
       console.error("Apply Leave Error:", error);
 
@@ -162,39 +183,70 @@ function LeaveRequest() {
           {leaveRequests.length === 0 ? (
             <p className="leave-empty">No leave requests found.</p>
           ) : (
-            <div className="leave-list">
-              {leaveRequests.map((leave) => (
-                <div className="leave-request-card" key={leave.id}>
-                  <div className="leave-request-top">
-                    <div>
-                      <h3>
-                        {formatDate(leave.fromDate)} -{" "}
-                        {formatDate(leave.toDate)}
-                      </h3>
+            <>
+              <div className="leave-list">
+                {leaveRequests.map((leave) => (
+                  <div className="leave-request-card" key={leave.id}>
+                    <div className="leave-request-top">
+                      <div>
+                        <h3>
+                          {formatDate(leave.fromDate)} -{" "}
+                          {formatDate(leave.toDate)}
+                        </h3>
 
-                      <p>{leave.reason}</p>
+                        <p>{leave.reason}</p>
+                      </div>
+
+                      <span
+                        className={`leave-status ${getStatusClass(
+                          leave.status,
+                        )}`}
+                      >
+                        {leave.status}
+                      </span>
                     </div>
 
-                    <span
-                      className={`leave-status ${getStatusClass(leave.status)}`}
-                    >
-                      {leave.status}
-                    </span>
-                  </div>
+                    {leave.adminReply && (
+                      <div className="leave-admin-reply">
+                        <strong>Admin Reply:</strong>
+                        <p>{leave.adminReply}</p>
+                      </div>
+                    )}
 
-                  {leave.adminReply && (
-                    <div className="leave-admin-reply">
-                      <strong>Admin Reply:</strong>
-                      <p>{leave.adminReply}</p>
+                    <div className="leave-request-footer">
+                      Requested on: {formatDate(leave.createdAt)}
                     </div>
-                  )}
-
-                  <div className="leave-request-footer">
-                    Requested on: {formatDate(leave.createdAt)}
                   </div>
+                ))}
+              </div>
+
+              {/* PAGINATION */}
+              {totalPages > 1 && (
+                <div className="pagination">
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(prev - 1, 1))
+                    }
+                    disabled={currentPage === 1}
+                  >
+                    ← Previous
+                  </button>
+
+                  <span>
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
+                    disabled={currentPage === totalPages}
+                  >
+                    Next →
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </section>
       </div>

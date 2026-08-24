@@ -7,6 +7,8 @@ import "../styles/ResetPassword.css";
 function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -70,23 +72,53 @@ function ResetPassword() {
         </p>
 
         <form onSubmit={handleSubmit}>
+          {/* New Password */}
           <label>New Password</label>
 
-          <input
-            type="password"
-            placeholder="Enter new password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
+          <div className="password-input-wrapper">
+            <input
+              type={showNewPassword ? "text" : "password"}
+              placeholder="Enter new password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
 
+            <button
+              type="button"
+              className="password-toggle-btn"
+              onClick={() => setShowNewPassword(!showNewPassword)}
+              aria-label={
+                showNewPassword ? "Hide new password" : "Show new password"
+              }
+            >
+              {showNewPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
+
+          {/* Confirm Password */}
           <label>Confirm Password</label>
 
-          <input
-            type="password"
-            placeholder="Confirm new password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
+          <div className="password-input-wrapper">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+
+            <button
+              type="button"
+              className="password-toggle-btn"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              aria-label={
+                showConfirmPassword
+                  ? "Hide confirm password"
+                  : "Show confirm password"
+              }
+            >
+              {showConfirmPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
 
           <button type="submit" disabled={loading}>
             {loading ? "Updating..." : "Reset Password"}

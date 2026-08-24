@@ -2,12 +2,18 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useNotification } from "../context/NotificationContext";
+import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
 import "../styles/Announcements.css";
 
 function Announcements() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [announcements, setAnnouncements] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const limit = 5;
   const [editingId, setEditingId] = useState(null);
 
   const navigate = useNavigate();
@@ -16,8 +22,15 @@ function Announcements() {
   // Get all announcements
   const fetchAnnouncements = async () => {
     try {
-      const response = await api.get("/announcements");
+      const response = await api.get("/announcements", {
+        params: {
+          page: currentPage,
+          limit: limit,
+        },
+      });
+
       setAnnouncements(response.data.announcements);
+      setTotalPages(response.data.totalPages);
     } catch (error) {
       showNotification(
         error.response?.data?.message || "Failed to fetch announcements",
@@ -28,7 +41,7 @@ function Announcements() {
 
   useEffect(() => {
     fetchAnnouncements();
-  }, []);
+  }, [currentPage]);
 
   // Create or Update Announcement
   const handleSubmit = async (e) => {
@@ -93,7 +106,6 @@ function Announcements() {
       await api.delete(`/announcements/${id}`);
 
       showNotification("Announcement deleted successfully", "success");
-
       fetchAnnouncements();
     } catch (error) {
       showNotification(
@@ -110,107 +122,149 @@ function Announcements() {
   };
 
   return (
-    <div className="announcements-page">
-      <div className="announcements-header">
-        <div>
-          <h1>📢 Announcements</h1>
-          <p>Create and manage announcements for students.</p>
-        </div>
+    <div>
+      {/* Top Navbar */}
+      <Navbar />
 
-        <button
-          className="back-dashboard-btn"
-          onClick={() => navigate("/dashboard")}
-        >
-          ← Back to Dashboard
-        </button>
-      </div>
+      <div className="dashboard-layout">
+        {/* Left Sidebar */}
+        <Sidebar />
 
-      {/* CREATE / EDIT FORM */}
-      <div className="announcement-form-card">
-        <h2>{editingId ? "✏️ Edit Announcement" : "➕ Create Announcement"}</h2>
+        {/* Main Content */}
+        <main className="dashboard-content announcements-page">
+          <div className="announcements-header">
+            <div>
+              <h1>📢 Announcements</h1>
+              <p>Create and manage announcements for students.</p>
+            </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Announcement Title</label>
-
-            <input
-              type="text"
-              placeholder="Enter announcement title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+            {/* <button
+              className="back-dashboard-btn"
+              onClick={() => navigate("/dashboard")}
+            >
+              ← Back to Dashboard
+            </button> */}
           </div>
 
-          <div className="form-group">
-            <label>Message</label>
+          {/* CREATE / EDIT FORM */}
+          <div className="announcement-form-card">
+            <h2>
+              {editingId ? "✏️ Edit Announcement" : "➕ Create Announcement"}
+            </h2>
 
-            <textarea
-              placeholder="Write your announcement message..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows="5"
-            />
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>Announcement Title</label>
+
+                <input
+                  type="text"
+                  placeholder="Enter announcement title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Message</label>
+
+                <textarea
+                  placeholder="Write your announcement message..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows="5"
+                />
+              </div>
+
+              <div className="announcement-form-actions">
+                <button type="submit" className="announcement-submit-btn">
+                  {editingId ? "Update Announcement" : "Publish Announcement"}
+                </button>
+
+                {editingId && (
+                  <button
+                    type="button"
+                    className="announcement-cancel-btn"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
 
-          <div className="announcement-form-actions">
-            <button type="submit" className="announcement-submit-btn">
-              {editingId ? "Update Announcement" : "Publish Announcement"}
-            </button>
+          {/* ANNOUNCEMENT LIST */}
+          <div className="announcement-list-section">
+            <h2>All Announcements</h2>
 
-            {editingId && (
-              <button
-                type="button"
-                className="announcement-cancel-btn"
-                onClick={handleCancelEdit}
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
+            {announcements.length === 0 ? (
+              <div className="no-announcements">
+                No announcements available.
+              </div>
+            ) : (
+              <div className="announcement-list">
+                {announcements.map((announcement) => (
+                  <div className="announcement-card" key={announcement.id}>
+                    <div className="announcement-card-top">
+                      <div>
+                        <h3>{announcement.title}</h3>
 
-      {/* ANNOUNCEMENT LIST */}
-      <div className="announcement-list-section">
-        <h2>All Announcements</h2>
+                        <p className="announcement-date">
+                          📅 {new Date(announcement.createdAt).toLocaleString()}
+                        </p>
+                      </div>
 
-        {announcements.length === 0 ? (
-          <div className="no-announcements">No announcements available.</div>
-        ) : (
-          <div className="announcement-list">
-            {announcements.map((announcement) => (
-              <div className="announcement-card" key={announcement.id}>
-                <div className="announcement-card-top">
-                  <div>
-                    <h3>{announcement.title}</h3>
+                      <div className="announcement-actions">
+                        <button
+                          className="edit-announcement-btn"
+                          onClick={() => handleEdit(announcement)}
+                        >
+                          ✏️ Edit
+                        </button>
 
-                    <p className="announcement-date">
-                      📅 {new Date(announcement.createdAt).toLocaleString()}
+                        <button
+                          className="delete-announcement-btn"
+                          onClick={() => handleDelete(announcement.id)}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="announcement-message">
+                      {announcement.message}
                     </p>
                   </div>
-
-                  <div className="announcement-actions">
-                    <button
-                      className="edit-announcement-btn"
-                      onClick={() => handleEdit(announcement)}
-                    >
-                      ✏️ Edit
-                    </button>
-
-                    <button
-                      className="delete-announcement-btn"
-                      onClick={() => handleDelete(announcement.id)}
-                    >
-                      🗑️ Delete
-                    </button>
-                  </div>
-                </div>
-
-                <p className="announcement-message">{announcement.message}</p>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+
+          {/* PAGINATION */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="pagination-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(currentPage - 1)}
+              >
+                ← Previous
+              </button>
+
+              <span className="pagination-info">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                className="pagination-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(currentPage + 1)}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
