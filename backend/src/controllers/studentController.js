@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
-const transporter = require("../config/mailer");
+const mailer = require("../config/mailer");
 
 // Create Student - ADMIN
 const createStudent = async (req, res) => {
@@ -410,39 +410,14 @@ console.log("Student created successfully:", student.email);
 // Email failure will NOT fail registration
 // Email is sent asynchronously after response is sent
 // ==========================================
-    // Send email asynchronously without blocking registration response
-    // We use fire-and-forget pattern: attach handlers but don't await
-    try {
-      console.log("Trying to send welcome email to:", normalizedEmail);
-
-      // Use fire-and-forget: sendMail returns a promise, attach .then/.catch but don't await
-      // We assign to a variable to keep reference, but don't await it
-      const sendPromise = transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Welcome to Student Management System!",
-        text: `Hi ${name},
-
-Welcome to the Student Management System!
-
-Your registration was successful. You can now log in to your account.
-
-Thank you!`
-      });
-
-      // Don't await - let it run in background
-      // Attach handlers for logging only
-      sendPromise.then(() => {
-        console.log("Welcome email sent successfully!");
-      }).catch((error) => {
-        console.error("Email sending failed:", error.message);
-        console.error("Email error details:", error);
-      });
-    } catch (emailError) {
-      // Email sending failure should not affect registration
-      // This catch block handles synchronous errors only
-      console.error("Email sending failed with error:", emailError.message);
-    }
+    // Send welcome email using Resend API
+    // Registration completes immediately - email sent in background
+    mailer.sendWelcomeEmail({ name, email: normalizedEmail }).then(() => {
+      // Email sent in background - success logged in console
+    }).catch((error) => {
+      // Email failure - logged but registration already completed
+      console.error("Welcome email background send error:", error.message);
+    });
 
     // Registration response is always successful
     // even if email sending fails
