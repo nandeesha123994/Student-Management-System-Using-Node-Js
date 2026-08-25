@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
 const jwt = require("jsonwebtoken");
+const { sendLoginEmail } = require("../config/mailer");
 
 // Register Admin/User
 const registerUser = async (req, res) => {
@@ -68,13 +69,13 @@ const loginUser = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Check User and Student at the same time for faster login
     const [user, student] = await Promise.all([
       prisma.user.findUnique({
         where: {
           email: normalizedEmail,
         },
       }),
-
       prisma.student.findUnique({
         where: {
           email: normalizedEmail,
@@ -82,7 +83,9 @@ const loginUser = async (req, res) => {
       }),
     ]);
 
-    // Check User/Admin
+    // =========================
+    // CHECK USER / ADMIN LOGIN
+    // =========================
     if (user && user.password) {
       const isUserPasswordValid = await bcrypt.compare(password, user.password);
 
@@ -99,6 +102,16 @@ const loginUser = async (req, res) => {
           },
         );
 
+        // Send login email in background.
+        // We DON'T await it, so login remains fast.
+        sendLoginEmail({
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        }).catch((error) => {
+          console.error("Login email background error:", error.message);
+        });
+
         return res.status(200).json({
           message: "Login successful",
           token,
@@ -112,11 +125,10 @@ const loginUser = async (req, res) => {
       }
     }
 
-    // Check Student
+    // =========================
+    // CHECK STUDENT LOGIN
+    // =========================
     if (student) {
-      console.log("Student found:", student.email);
-      console.log("Student Status:", student.status);
-      console.log("Has password:", !!student.password);
       if (student.status === "INACTIVE") {
         return res.status(403).json({
           message:
@@ -142,6 +154,16 @@ const loginUser = async (req, res) => {
               expiresIn: "1d",
             },
           );
+
+          // Send login email in background.
+          // Login will not wait for the email.
+          sendLoginEmail({
+            name: student.name,
+            email: student.email,
+            role: "STUDENT",
+          }).catch((error) => {
+            console.error("Login email background error:", error.message);
+          });
 
           return res.status(200).json({
             message: "Student login successful",
@@ -189,7 +211,6 @@ const forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Check User/Admin
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
     });
@@ -202,7 +223,6 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Check Student
     const student = await prisma.student.findUnique({
       where: { email: normalizedEmail },
     });
@@ -245,11 +265,8 @@ const resetPassword = async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-
-    // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Reset User/Admin password
     if (userType === "USER") {
       const user = await prisma.user.findUnique({
         where: { email: normalizedEmail },
@@ -276,7 +293,6 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Reset Student password
     if (userType === "STUDENT") {
       const student = await prisma.student.findUnique({
         where: { email: normalizedEmail },
@@ -321,3 +337,4 @@ module.exports = {
   forgotPassword,
   resetPassword,
 };
+  
