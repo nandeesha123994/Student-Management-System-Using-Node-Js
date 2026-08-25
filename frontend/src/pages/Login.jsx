@@ -8,17 +8,30 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
   const { showNotification } = useNotification();
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
+    // Prevent multiple clicks
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
     try {
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-      });
+      const response = await api.post(
+        "/auth/login",
+        {
+          email: email.trim().toLowerCase(),
+          password,
+        },
+        {
+          timeout: 30000,
+        },
+      );
 
       const { token, user } = response.data;
 
@@ -39,10 +52,22 @@ function Login() {
         navigate("/");
       }
     } catch (error) {
-      showNotification(
-        error.response?.data?.message || "Login failed",
-        "error",
-      );
+      console.error("Login Error:", error);
+
+      if (error.code === "ECONNABORTED") {
+        showNotification(
+          "Server is taking too long to respond. Please try again.",
+          "error",
+        );
+      } else {
+        showNotification(
+          error.response?.data?.message || "Login failed",
+          "error",
+        );
+      }
+    } finally {
+      // Always stop loading
+      setIsSubmitting(false);
     }
   };
 
@@ -91,6 +116,7 @@ function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="off"
                 required
+                disabled={isSubmitting}
               />
 
               <label htmlFor="password">Password</label>
@@ -104,6 +130,7 @@ function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
                   required
+                  disabled={isSubmitting}
                 />
 
                 <button
@@ -111,6 +138,7 @@ function Login() {
                   className="password-toggle-btn"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isSubmitting}
                 >
                   {showPassword ? "🙈" : "👁️"}
                 </button>
@@ -149,8 +177,12 @@ function Login() {
                 </a>
               </div>
 
-              <button type="submit" className="login-submit-btn">
-                Login
+              <button
+                type="submit"
+                className="login-submit-btn"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Logging in..." : "Login"}
               </button>
             </form>
 
