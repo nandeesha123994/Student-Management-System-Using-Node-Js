@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
+const transporter = require("../config/mailer");
 
 // Create Student - ADMIN
 const createStudent = async (req, res) => {
@@ -23,9 +24,7 @@ const createStudent = async (req, res) => {
     }
 
     const course = await prisma.course.findUnique({
-      where: {
-        id: Number(courseId),
-      },
+      where: { id: Number(courseId) },
     });
 
     if (!course) {
@@ -70,10 +69,7 @@ const createStudent = async (req, res) => {
     });
   } catch (error) {
     console.error("Create Student Error:", error);
-
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -81,7 +77,6 @@ const createStudent = async (req, res) => {
 const getAllStudents = async (req, res) => {
   try {
     const { search, courseId } = req.query;
-
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 5;
     const skip = (page - 1) * limit;
@@ -103,24 +98,17 @@ const getAllStudents = async (req, res) => {
           },
         ],
       }),
-
       ...(courseId && {
         courseId: Number(courseId),
       }),
     };
 
-    const totalStudents = await prisma.student.count({
-      where,
-    });
+    const totalStudents = await prisma.student.count({ where });
 
     const students = await prisma.student.findMany({
       where,
-      include: {
-        course: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      include: { course: true },
+      orderBy: { createdAt: "desc" },
       skip,
       take: limit,
     });
@@ -134,10 +122,7 @@ const getAllStudents = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Students Error:", error);
-
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -147,12 +132,8 @@ const getStudentById = async (req, res) => {
     const { id } = req.params;
 
     const student = await prisma.student.findUnique({
-      where: {
-        id: Number(id),
-      },
-      include: {
-        course: true,
-      },
+      where: { id: Number(id) },
+      include: { course: true },
     });
 
     if (!student) {
@@ -167,10 +148,7 @@ const getStudentById = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Student Error:", error);
-
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -178,13 +156,10 @@ const getStudentById = async (req, res) => {
 const updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
-
     const { name, email, phone, gender, address, status, courseId } = req.body;
 
     const existingStudent = await prisma.student.findUnique({
-      where: {
-        id: Number(id),
-      },
+      where: { id: Number(id) },
     });
 
     if (!existingStudent) {
@@ -195,9 +170,7 @@ const updateStudent = async (req, res) => {
 
     if (courseId) {
       const course = await prisma.course.findUnique({
-        where: {
-          id: Number(courseId),
-        },
+        where: { id: Number(courseId) },
       });
 
       if (!course) {
@@ -214,9 +187,7 @@ const updateStudent = async (req, res) => {
     }
 
     const student = await prisma.student.update({
-      where: {
-        id: Number(id),
-      },
+      where: { id: Number(id) },
       data: {
         name,
         email,
@@ -224,14 +195,11 @@ const updateStudent = async (req, res) => {
         gender,
         address,
         status,
-
         ...(courseId && {
           courseId: Number(courseId),
         }),
       },
-      include: {
-        course: true,
-      },
+      include: { course: true },
     });
 
     res.status(200).json({
@@ -240,10 +208,7 @@ const updateStudent = async (req, res) => {
     });
   } catch (error) {
     console.error("Update Student Error:", error);
-
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -253,9 +218,7 @@ const deleteStudent = async (req, res) => {
     const { id } = req.params;
 
     const existingStudent = await prisma.student.findUnique({
-      where: {
-        id: Number(id),
-      },
+      where: { id: Number(id) },
     });
 
     if (!existingStudent) {
@@ -265,9 +228,7 @@ const deleteStudent = async (req, res) => {
     }
 
     await prisma.student.delete({
-      where: {
-        id: Number(id),
-      },
+      where: { id: Number(id) },
     });
 
     res.status(200).json({
@@ -275,10 +236,7 @@ const deleteStudent = async (req, res) => {
     });
   } catch (error) {
     console.error("Delete Student Error:", error);
-
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -292,12 +250,8 @@ const getStudentProfile = async (req, res) => {
     }
 
     const student = await prisma.student.findUnique({
-      where: {
-        id: Number(req.user.id),
-      },
-      include: {
-        course: true,
-      },
+      where: { id: Number(req.user.id) },
+      include: { course: true },
     });
 
     if (!student) {
@@ -321,16 +275,15 @@ const getStudentProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Student Profile Error:", error);
-
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Student Self Registration
+// Student Self Registration + Welcome Email
 const registerStudent = async (req, res) => {
   try {
+    console.log("Register student function is running!");
+
     const { name, email, password, phone, gender, address, courseId } =
       req.body;
 
@@ -351,9 +304,7 @@ const registerStudent = async (req, res) => {
     }
 
     const course = await prisma.course.findUnique({
-      where: {
-        id: Number(courseId),
-      },
+      where: { id: Number(courseId) },
     });
 
     if (!course) {
@@ -368,9 +319,10 @@ const registerStudent = async (req, res) => {
       });
     }
 
-    // Password is created only during student registration
+    // Encrypt password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create student
     const student = await prisma.student.create({
       data: {
         name,
@@ -393,8 +345,30 @@ const registerStudent = async (req, res) => {
       },
     });
 
+    console.log("Student created successfully:", student.email);
+
+    // Send welcome email
+    console.log("Trying to send welcome email to:", email);
+
+    const mailInfo = await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Welcome to Student Management System!",
+      text: `Hi ${name},
+
+Welcome to the Student Management System!
+
+Your registration was successful. You can now log in to your account.
+
+Thank you!`,
+    });
+
+    console.log("Welcome email sent successfully!");
+    console.log("Message ID:", mailInfo.messageId);
+
     res.status(201).json({
-      message: "Registration successful. You can now login.",
+      message:
+        "Registration successful. Please check your email. You can now login.",
       student,
     });
   } catch (error) {
