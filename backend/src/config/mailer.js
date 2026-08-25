@@ -1,26 +1,26 @@
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  connectionTimeout: 20000,
+  greetingTimeout: 20000,
+  socketTimeout: 30000,
 });
 
-// Verify connection on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.log("Email configuration error:", error.message);
-    console.error("WARNING: Email transporter verification failed. Check EMAIL_USER and EMAIL_PASS environment variables.");
-  } else {
-    console.log("Email server is ready");
-  }
-});
-
-// Also log if env vars are missing
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.error("WARNING: EMAIL_USER or EMAIL_PASS environment variables are not set!");
-}
+transporter
+  .verify()
+  .then(() => {
+    console.log("✅ Email server is ready");
+  })
+  .catch((error) => {
+    console.error("❌ Email configuration error:", error.message);
+    console.error("Email error code:", error.code);
+  });
 
 module.exports = transporter;
