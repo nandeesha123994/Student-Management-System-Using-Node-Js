@@ -1,39 +1,36 @@
-const resend = require("resend");
+const { Resend } = require("resend");
 
-const apiKey = process.env.RESEND_API_KEY;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const email = resend.sendMail;
-
-module.exports = {
-  sendWelcomeEmail: async ({ name, email, normalizedEmail }) => {
-    if (!apiKey) {
+const sendWelcomeEmail = async (name, email) => {
+  try {
+    if (!process.env.RESEND_API_KEY) {
       console.error("❌ RESEND_API_KEY not configured");
-      return false;
+      return;
     }
 
-    try {
-      const { data, error } = await email({
-        from: `Student Management System <onboarding@resend.co>`,
-        to: email,
-        subject: "Welcome to Student Management System!",
-        html: `
-          <h2>Hi ${name}</h2>
-          <p>Welcome to the Student Management System!</p>
-          <p>Your registration was successful. You can now log in to your account.</p>
-          <p>Thank you!</p>
-        `,
-      });
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM || "onboarding@resend.dev",
+      to: [email],
+      subject: "Welcome to Student Management System!",
+      html: `
+        <h2>Welcome, ${name}! 🎓</h2>
+        <p>Your registration was successful.</p>
+        <p>You can now log in to your Student Management System account.</p>
+        <br />
+        <p>Thank you!</p>
+      `,
+    });
 
-      if (error) {
-        console.error("❌ Resend email error:", error);
-        return false;
-      }
-
-      console.log("✅ Welcome email sent via Resend! Message ID:", data.id);
-      return true;
-    } catch (err) {
-      console.error("❌ Resend email sending failed:", err.message);
-      return false;
+    if (error) {
+      console.error("❌ Resend email sending failed:", error);
+      return;
     }
-  },
+
+    console.log("✅ Welcome email sent successfully:", data);
+  } catch (error) {
+    console.error("❌ Resend email sending failed:", error.message);
+  }
 };
+
+module.exports = { sendWelcomeEmail };

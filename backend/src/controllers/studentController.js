@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
-const mailer = require("../config/mailer");
+const { sendWelcomeEmail } = require("../config/mailer");
 
 // Create Student - ADMIN
 const createStudent = async (req, res) => {
@@ -13,8 +13,10 @@ const createStudent = async (req, res) => {
       });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     const existingStudent = await prisma.student.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingStudent) {
@@ -41,11 +43,11 @@ const createStudent = async (req, res) => {
 
     const student = await prisma.student.create({
       data: {
-        name,
-        email,
+        name: name.trim(),
+        email: normalizedEmail,
         phone,
         gender,
-        address,
+        address: address?.trim() || "",
         courseId: Number(courseId),
       },
       select: {
@@ -79,7 +81,6 @@ const createStudent = async (req, res) => {
 const getAllStudents = async (req, res) => {
   try {
     const { search, courseId } = req.query;
-
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 5;
     const skip = (page - 1) * limit;
@@ -101,15 +102,12 @@ const getAllStudents = async (req, res) => {
           },
         ],
       }),
-
       ...(courseId && {
         courseId: Number(courseId),
       }),
     };
 
-    const totalStudents = await prisma.student.count({
-      where,
-    });
+    const totalStudents = await prisma.student.count({ where });
 
     const students = await prisma.student.findMany({
       where,
@@ -132,7 +130,6 @@ const getAllStudents = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Students Error:", error);
-
     res.status(500).json({
       message: error.message,
     });
@@ -165,7 +162,6 @@ const getStudentById = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Student Error:", error);
-
     res.status(500).json({
       message: error.message,
     });
@@ -176,7 +172,6 @@ const getStudentById = async (req, res) => {
 const updateStudent = async (req, res) => {
   try {
     const { id } = req.params;
-
     const { name, email, phone, gender, address, status, courseId } = req.body;
 
     const existingStudent = await prisma.student.findUnique({
@@ -191,7 +186,6 @@ const updateStudent = async (req, res) => {
       });
     }
 
-    // Check course if course is being changed
     if (courseId) {
       const course = await prisma.course.findUnique({
         where: {
@@ -218,12 +212,11 @@ const updateStudent = async (req, res) => {
       },
       data: {
         name,
-        email,
+        email: email ? email.trim().toLowerCase() : undefined,
         phone,
         gender,
         address,
         status,
-
         ...(courseId && {
           courseId: Number(courseId),
         }),
@@ -239,7 +232,6 @@ const updateStudent = async (req, res) => {
     });
   } catch (error) {
     console.error("Update Student Error:", error);
-
     res.status(500).json({
       message: error.message,
     });
@@ -274,7 +266,6 @@ const deleteStudent = async (req, res) => {
     });
   } catch (error) {
     console.error("Delete Student Error:", error);
-
     res.status(500).json({
       message: error.message,
     });
@@ -320,7 +311,6 @@ const getStudentProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Student Profile Error:", error);
-
     res.status(500).json({
       message: error.message,
     });
@@ -335,7 +325,6 @@ const registerStudent = async (req, res) => {
     const { name, email, password, phone, gender, address, courseId } =
       req.body;
 
-    // Validate required fields
     if (!name || !email || !password || !phone || !gender || !courseId) {
       return res.status(400).json({
         message: "All required fields must be filled",
@@ -380,7 +369,7 @@ const registerStudent = async (req, res) => {
     // Encrypt password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create student in database
+    // Create student
     const student = await prisma.student.create({
       data: {
         name: name.trim(),
@@ -403,24 +392,18 @@ const registerStudent = async (req, res) => {
       },
     });
 
-console.log("Student created successfully:", student.email);
+    console.log("Student created successfully:", student.email);
 
-// ==========================================
-// SEND WELCOME EMAIL IN BACKGROUND
-// Email failure will NOT fail registration
-// Email is sent asynchronously after response is sent
-// ==========================================
-    // Send welcome email using Resend API
-    // Registration completes immediately - email sent in background
-    mailer.sendWelcomeEmail({ name, email: normalizedEmail }).then(() => {
-      // Email sent in background - success logged in console
+    // Send welcome email in the background.
+    // IMPORTANT: We do NOT await this, so registration stays fast.
+    sendWelcomeEmail({
+      name: student.name,
+      email: student.email,
     }).catch((error) => {
-      // Email failure - logged but registration already completed
-      console.error("Welcome email background send error:", error.message);
+      console.error("Welcome email background error:", error.message);
     });
 
-    // Registration response is always successful
-    // even if email sending fails
+    // Registration succeeds immediately
     res.status(201).json({
       message: "Registration successful! You can now login.",
       student,
