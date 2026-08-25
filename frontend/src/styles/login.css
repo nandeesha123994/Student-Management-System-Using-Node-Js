@@ -298,3 +298,43 @@ a.register-link:hover {
     font-size: 14px;
   }
 }
+
+/* PASSWORD INPUT WITH EYE ICON */
+
+/* PASSWORD EYE ICON - FINAL FIX */
+
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 50px !important;
+}
+
+.login-form .password-toggle-btn {
+  position: absolute !important;
+  right: 15px !important;
+  top: 50% !important;
+
+  /* Move icon down */
+  transform: translateY(-20%) !important;
+
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+
+  background: transparent !important;
+  border: none !important;
+  color: #333 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
+.login-form .password-toggle-btn:hover {
+  background: transparent !important;
+  transform: translateY(-20%) !important;
+}

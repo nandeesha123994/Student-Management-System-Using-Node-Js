@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://192.168.0.124:5000/api",
+  baseURL: "https://student-management-backend-d0bd.onrender.com/api",
 });
 
 // Automatically send JWT token
