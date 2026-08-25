@@ -293,6 +293,7 @@ const registerStudent = async (req, res) => {
       });
     }
 
+    // Check whether email already exists
     const existingStudent = await prisma.student.findUnique({
       where: { email },
     });
@@ -303,6 +304,7 @@ const registerStudent = async (req, res) => {
       });
     }
 
+    // Check course
     const course = await prisma.course.findUnique({
       where: { id: Number(courseId) },
     });
@@ -322,7 +324,7 @@ const registerStudent = async (req, res) => {
     // Encrypt password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create student
+    // Create student in database
     const student = await prisma.student.create({
       data: {
         name,
@@ -347,28 +349,33 @@ const registerStudent = async (req, res) => {
 
     console.log("Student created successfully:", student.email);
 
-    // Send welcome email
-    console.log("Trying to send welcome email to:", email);
+    // Send welcome email separately
+    // Email failure will NOT fail student registration
+    try {
+      console.log("Trying to send welcome email to:", email);
 
-    const mailInfo = await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Welcome to Student Management System!",
-      text: `Hi ${name},
+      const mailInfo = await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Welcome to Student Management System!",
+        text: `Hi ${name},
 
 Welcome to the Student Management System!
 
 Your registration was successful. You can now log in to your account.
 
 Thank you!`,
-    });
+      });
 
-    console.log("Welcome email sent successfully!");
-    console.log("Message ID:", mailInfo.messageId);
+      console.log("Welcome email sent successfully!");
+      console.log("Message ID:", mailInfo.messageId);
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError.message);
+    }
 
+    // Registration succeeds even if email fails
     res.status(201).json({
-      message:
-        "Registration successful. Please check your email. You can now login.",
+      message: "Registration successful. You can now login.",
       student,
     });
   } catch (error) {
