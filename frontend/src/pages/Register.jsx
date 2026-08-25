@@ -12,6 +12,9 @@ function Register() {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
+  // Prevent multiple registration requests
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -26,7 +29,6 @@ function Register() {
   useEffect(() => {
     const getCourses = async () => {
       try {
-        // Get more courses instead of the default 5
         const response = await api.get("/courses", {
           params: {
             page: 1,
@@ -34,7 +36,6 @@ function Register() {
           },
         });
 
-        // Filter only ACTIVE courses
         const activeCourses = (response.data.courses || []).filter(
           (course) => course.status === "ACTIVE",
         );
@@ -64,7 +65,7 @@ function Register() {
       [name]: updatedValue,
     }));
 
-    // Remove error for this field when user starts correcting it
+    // Remove error when user starts correcting
     setErrors((prev) => ({
       ...prev,
       [name]: "",
@@ -127,24 +128,49 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    // Important: Prevent double submission
+    if (isSubmitting) {
+      return;
+    }
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      await api.post("/students/register", {
-        ...formData,
+      const response = await api.post("/students/register", {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        phone: formData.phone,
+        gender: formData.gender,
+        address: formData.address.trim(),
         courseId: Number(formData.courseId),
       });
 
-      showNotification("Registration successful! Please login.", "success");
+      console.log("Registration successful:", response.data);
 
-      navigate("/login");
+      showNotification(
+        "Registration successful! Please check your email and login.",
+        "success",
+      );
+
+      // Navigate only after successful response
+      setTimeout(() => {
+        navigate("/login");
+      }, 500);
     } catch (error) {
+      console.error("Registration Error:", error.response?.data || error);
+
       showNotification(
         error.response?.data?.message || "Registration failed",
         "error",
       );
+    } finally {
+      // Enable button again
+      setIsSubmitting(false);
     }
   };
 
@@ -190,6 +216,7 @@ function Register() {
                 placeholder="Enter your name"
                 value={formData.name}
                 onChange={handleChange}
+                disabled={isSubmitting}
                 className={errors.name ? "input-error" : ""}
               />
               {errors.name && (
@@ -205,6 +232,7 @@ function Register() {
                 value={formData.email}
                 onChange={handleChange}
                 autoComplete="off"
+                disabled={isSubmitting}
                 className={errors.email ? "input-error" : ""}
               />
               {errors.email && (
@@ -222,6 +250,7 @@ function Register() {
                   value={formData.password}
                   onChange={handleChange}
                   autoComplete="new-password"
+                  disabled={isSubmitting}
                   className={errors.password ? "input-error" : ""}
                 />
 
@@ -229,6 +258,7 @@ function Register() {
                   type="button"
                   className="password-toggle-btn"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={isSubmitting}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? "🙈" : "👁️"}
@@ -249,6 +279,7 @@ function Register() {
                 onChange={handleChange}
                 inputMode="numeric"
                 maxLength="10"
+                disabled={isSubmitting}
                 className={errors.phone ? "input-error" : ""}
               />
               {errors.phone && (
@@ -261,6 +292,7 @@ function Register() {
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
+                disabled={isSubmitting}
                 className={errors.gender ? "input-error" : ""}
               >
                 <option value="">Select Gender</option>
@@ -268,6 +300,7 @@ function Register() {
                 <option value="FEMALE">Female</option>
                 <option value="OTHER">Other</option>
               </select>
+
               {errors.gender && (
                 <small className="field-error">{errors.gender}</small>
               )}
@@ -280,6 +313,7 @@ function Register() {
                 placeholder="Enter your address"
                 value={formData.address}
                 onChange={handleChange}
+                disabled={isSubmitting}
               />
 
               {/* Course */}
@@ -288,6 +322,7 @@ function Register() {
                 name="courseId"
                 value={formData.courseId}
                 onChange={handleChange}
+                disabled={isSubmitting}
                 className={errors.courseId ? "input-error" : ""}
               >
                 <option value="">Select Course</option>
@@ -298,11 +333,15 @@ function Register() {
                   </option>
                 ))}
               </select>
+
               {errors.courseId && (
                 <small className="field-error">{errors.courseId}</small>
               )}
 
-              <button type="submit">Create Account</button>
+              {/* Submit Button */}
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating Account..." : "Create Account"}
+              </button>
 
               <p className="register-login">
                 Already have an account?{" "}
