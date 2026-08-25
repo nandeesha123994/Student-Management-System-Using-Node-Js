@@ -405,47 +405,42 @@ const registerStudent = async (req, res) => {
 
     console.log("Student created successfully:", student.email);
 
-    // ==========================================
-    // SEND WELCOME EMAIL
-    // Email failure will NOT fail registration
-    // ==========================================
-    let emailSent = false;
-
+// ==========================================
+// SEND WELCOME EMAIL IN BACKGROUND
+// Email failure will NOT fail registration
+// Email is sent asynchronously after response is sent
+// ==========================================
+    // Send email asynchronously without blocking registration response
+    // We use fire-and-forget pattern: attach handlers but don't await
     try {
-      console.log("Trying to send welcome email to:", normalizedEmail);
+      console.log("Sending welcome email to:", normalizedEmail);
 
-      const mailInfo = await transporter.sendMail({
+      transporter.sendMail({
         from: process.env.EMAIL_USER,
-        to: normalizedEmail,
+        to: email,
         subject: "Welcome to Student Management System!",
-        text: `Hi ${name.trim()},
+        text: `Hi ${name},
 
 Welcome to the Student Management System!
 
 Your registration was successful. You can now log in to your account.
 
-Thank you!`,
+Thank you!`
+      }).then(() => {
+        console.log("Welcome email sent successfully!");
+      }).catch((error) => {
+        console.error("Welcome email failed:", error.message);
       });
-
-      emailSent = true;
-
-      console.log("Welcome email sent successfully!");
-      console.log("Message ID:", mailInfo.messageId);
     } catch (emailError) {
-      console.error("=================================");
-      console.error("EMAIL SENDING FAILED!");
-      console.error(emailError.message);
-      console.error("=================================");
+      // Email sending failure should not affect registration
+      console.error("Email sending error (non-critical):", emailError.message);
     }
 
     // Registration response is always successful
     // even if email sending fails
     res.status(201).json({
-      message: emailSent
-        ? "Registration successful! Welcome email sent. You can now login."
-        : "Registration successful! You can now login.",
+      message: "Registration successful! You can now login.",
       student,
-      emailSent,
     });
   } catch (error) {
     console.error("Student Registration Error:", error);
