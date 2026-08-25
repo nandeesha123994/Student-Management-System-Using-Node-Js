@@ -403,7 +403,7 @@ const registerStudent = async (req, res) => {
       },
     });
 
-    console.log("Student created successfully:", student.email);
+console.log("Student created successfully:", student.email);
 
 // ==========================================
 // SEND WELCOME EMAIL IN BACKGROUND
@@ -413,9 +413,11 @@ const registerStudent = async (req, res) => {
     // Send email asynchronously without blocking registration response
     // We use fire-and-forget pattern: attach handlers but don't await
     try {
-      console.log("Sending welcome email to:", normalizedEmail);
+      console.log("Trying to send welcome email to:", normalizedEmail);
 
-      transporter.sendMail({
+      // Use fire-and-forget: sendMail returns a promise, attach .then/.catch but don't await
+      // We assign to a variable to keep reference, but don't await it
+      const sendPromise = transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: email,
         subject: "Welcome to Student Management System!",
@@ -426,14 +428,20 @@ Welcome to the Student Management System!
 Your registration was successful. You can now log in to your account.
 
 Thank you!`
-      }).then(() => {
+      });
+
+      // Don't await - let it run in background
+      // Attach handlers for logging only
+      sendPromise.then(() => {
         console.log("Welcome email sent successfully!");
       }).catch((error) => {
-        console.error("Welcome email failed:", error.message);
+        console.error("Email sending failed:", error.message);
+        console.error("Email error details:", error);
       });
     } catch (emailError) {
       // Email sending failure should not affect registration
-      console.error("Email sending error (non-critical):", emailError.message);
+      // This catch block handles synchronous errors only
+      console.error("Email sending failed with error:", emailError.message);
     }
 
     // Registration response is always successful
