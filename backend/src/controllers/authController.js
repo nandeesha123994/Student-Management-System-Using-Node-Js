@@ -1,7 +1,8 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
 const jwt = require("jsonwebtoken");
-const { sendLoginEmail } = require("../config/mailer");
+const crypto = require("crypto");
+const { sendLoginEmail, sendResetPasswordEmail } = require("../config/mailer");
 
 // Register Admin/User
 const registerUser = async (req, res) => {
@@ -17,9 +18,7 @@ const registerUser = async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
 
     const existingUser = await prisma.user.findUnique({
-      where: {
-        email: normalizedEmail,
-      },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -49,10 +48,7 @@ const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Register Error:", error);
-
-    res.status(500).json({
-      message: "Server error",
-    });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -69,23 +65,16 @@ const loginUser = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Check User and Student at the same time for faster login
     const [user, student] = await Promise.all([
       prisma.user.findUnique({
-        where: {
-          email: normalizedEmail,
-        },
+        where: { email: normalizedEmail },
       }),
       prisma.student.findUnique({
-        where: {
-          email: normalizedEmail,
-        },
+        where: { email: normalizedEmail },
       }),
     ]);
 
-    // =========================
-    // CHECK USER / ADMIN LOGIN
-    // =========================
+    // USER / ADMIN LOGIN
     if (user && user.password) {
       const isUserPasswordValid = await bcrypt.compare(password, user.password);
 
@@ -97,13 +86,10 @@ const loginUser = async (req, res) => {
             role: user.role,
           },
           process.env.JWT_SECRET,
-          {
-            expiresIn: "1d",
-          },
+          { expiresIn: "1d" },
         );
 
-        // Send login email in background.
-        // We DON'T await it, so login remains fast.
+        // Background email - does not slow down login
         sendLoginEmail({
           name: user.name,
           email: user.email,
@@ -125,9 +111,7 @@ const loginUser = async (req, res) => {
       }
     }
 
-    // =========================
-    // CHECK STUDENT LOGIN
-    // =========================
+    // STUDENT LOGIN
     if (student) {
       if (student.status === "INACTIVE") {
         return res.status(403).json({
@@ -150,13 +134,10 @@ const loginUser = async (req, res) => {
               role: "STUDENT",
             },
             process.env.JWT_SECRET,
-            {
-              expiresIn: "1d",
-            },
+            { expiresIn: "1d" },
           );
 
-          // Send login email in background.
-          // Login will not wait for the email.
+          // Background email - does not slow down login
           sendLoginEmail({
             name: student.name,
             email: student.email,
@@ -179,7 +160,6 @@ const loginUser = async (req, res) => {
       }
     }
 
-    // Admin-added student without password
     if (student && !student.password) {
       return res.status(401).json({
         message: "Password is not set for this student. Please register first.",
@@ -191,14 +171,13 @@ const loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Login Error:", error);
-
-    return res.status(500).json({
-      message: "Server error",
-    });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
-// Forgot Password - Check Email
+// ==========================================
+// FORGOT PASSWORD - GENERATE RESET LINK
+// ==========================================
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -211,50 +190,82 @@ const forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
+    // Find User and Student
+    const [user, student] = await Promise.all([
+      prisma.user.findUnique({
+        where: { email: normalizedEmail },
+      }),
+      prisma.student.findUnique({
+        where: { email: normalizedEmail },
+      }),
+    ]);
 
+    const account = user || student;
+
+    if (!account) {
+      return res.status(404).json({
+        message: "No account found with this email",
+      });
+    }
+
+    // Generate secure random token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // Token expires in 15 minutes
+    const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    // Save token in the correct account
     if (user) {
-      return res.status(200).json({
-        message: "Email found. You can reset your password.",
-        userType: "USER",
-        email: user.email,
+      await prisma.user.update({
+        where: { email: normalizedEmail },
+        data: {
+          resetToken,
+          resetTokenExpiry,
+        },
+      });
+    } else {
+      await prisma.student.update({
+        where: { email: normalizedEmail },
+        data: {
+          resetToken,
+          resetTokenExpiry,
+        },
       });
     }
 
-    const student = await prisma.student.findUnique({
-      where: { email: normalizedEmail },
+    // Your deployed frontend reset page
+    const resetLink = `https://student-management-system-using-nod-five.vercel.app/reset-password?token=${resetToken}`;
+
+    // Send email
+    sendResetPasswordEmail({
+      name: account.name,
+      email: account.email,
+      resetLink,
+    }).catch((error) => {
+      console.error("Password reset email error:", error.message);
     });
 
-    if (student) {
-      return res.status(200).json({
-        message: "Email found. You can reset your password.",
-        userType: "STUDENT",
-        email: student.email,
-      });
-    }
-
-    return res.status(404).json({
-      message: "No account found with this email",
+    return res.status(200).json({
+      message: "Password reset link has been sent to your email.",
     });
   } catch (error) {
     console.error("Forgot Password Error:", error);
-
     return res.status(500).json({
       message: "Server error",
     });
   }
 };
 
-// Reset Password
+// ==========================================
+// RESET PASSWORD USING SECURE TOKEN
+// ==========================================
 const resetPassword = async (req, res) => {
   try {
-    const { email, userType, newPassword } = req.body;
+    const { token, newPassword } = req.body;
 
-    if (!email || !userType || !newPassword) {
+    if (!token || !newPassword) {
       return res.status(400).json({
-        message: "Email, user type and new password are required",
+        message: "Reset token and new password are required",
       });
     }
 
@@ -264,67 +275,63 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    // Find valid token that has not expired
+    const [user, student] = await Promise.all([
+      prisma.user.findFirst({
+        where: {
+          resetToken: token,
+          resetTokenExpiry: {
+            gt: new Date(),
+          },
+        },
+      }),
+      prisma.student.findFirst({
+        where: {
+          resetToken: token,
+          resetTokenExpiry: {
+            gt: new Date(),
+          },
+        },
+      }),
+    ]);
+
+    const account = user || student;
+
+    if (!account) {
+      return res.status(400).json({
+        message: "This password reset link is invalid or has expired.",
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    if (userType === "USER") {
-      const user = await prisma.user.findUnique({
-        where: { email: normalizedEmail },
-      });
-
-      if (!user) {
-        return res.status(404).json({
-          message: "User not found",
-        });
-      }
-
+    // Update password and remove token
+    if (user) {
       await prisma.user.update({
-        where: {
-          email: normalizedEmail,
-        },
+        where: { id: user.id },
         data: {
           password: hashedPassword,
+          resetToken: null,
+          resetTokenExpiry: null,
         },
       });
-
-      return res.status(200).json({
-        message:
-          "Password reset successfully. Please login with your new password.",
-      });
-    }
-
-    if (userType === "STUDENT") {
-      const student = await prisma.student.findUnique({
-        where: { email: normalizedEmail },
-      });
-
-      if (!student) {
-        return res.status(404).json({
-          message: "Student not found",
-        });
-      }
-
+    } else {
       await prisma.student.update({
-        where: {
-          email: normalizedEmail,
-        },
+        where: { id: student.id },
         data: {
           password: hashedPassword,
+          resetToken: null,
+          resetTokenExpiry: null,
         },
-      });
-
-      return res.status(200).json({
-        message:
-          "Password reset successfully. Please login with your new password.",
       });
     }
 
-    return res.status(400).json({
-      message: "Invalid user type",
+    return res.status(200).json({
+      message:
+        "Password reset successfully. Please login with your new password.",
     });
   } catch (error) {
     console.error("Reset Password Error:", error);
-
     return res.status(500).json({
       message: "Server error",
     });
@@ -337,4 +344,3 @@ module.exports = {
   forgotPassword,
   resetPassword,
 };
-  

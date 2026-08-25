@@ -5,11 +5,6 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Welcome email after registration
 const sendWelcomeEmail = async ({ name, email }) => {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      console.error("❌ RESEND_API_KEY not configured");
-      return;
-    }
-
     const { data, error } = await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to: email,
@@ -37,11 +32,6 @@ const sendWelcomeEmail = async ({ name, email }) => {
 // Login notification email
 const sendLoginEmail = async ({ name, email }) => {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      console.error("❌ RESEND_API_KEY not configured");
-      return;
-    }
-
     const { data, error } = await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to: email,
@@ -67,7 +57,51 @@ const sendLoginEmail = async ({ name, email }) => {
   }
 };
 
+// Password reset email
+const sendResetPasswordEmail = async ({ name, email, resetLink }) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Reset Your Password 🔐",
+      html: `
+        <h2>Hello, ${name}! 👋</h2>
+        <p>We received a request to reset your password.</p>
+        
+        <p>
+          Click the button below to create a new password:
+        </p>
+
+        <p>
+          <a href="${resetLink}"
+             style="background:#2563eb;color:white;padding:12px 20px;
+             text-decoration:none;border-radius:6px;display:inline-block;">
+             Reset Password
+          </a>
+        </p>
+
+        <p>This link will expire in <strong>15 minutes</strong>.</p>
+
+        <p>If you didn't request a password reset, you can safely ignore this email.</p>
+
+        <br />
+        <p><strong>Student Management System</strong></p>
+      `,
+    });
+
+    if (error) {
+      console.error("❌ Password reset email sending failed:", error);
+      return;
+    }
+
+    console.log("✅ Password reset email sent successfully:", data);
+  } catch (error) {
+    console.error("❌ Password reset email sending failed:", error.message);
+  }
+};
+
 module.exports = {
   sendWelcomeEmail,
   sendLoginEmail,
+  sendResetPasswordEmail,
 };

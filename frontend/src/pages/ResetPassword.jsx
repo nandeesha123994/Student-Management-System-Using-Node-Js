@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 import { useNotification } from "../context/NotificationContext";
 import "../styles/ResetPassword.css";
@@ -12,16 +12,17 @@ function ResetPassword() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { showNotification } = useNotification();
 
-  const { email, userType } = location.state || {};
+  // Get reset token from URL
+  const token = searchParams.get("token");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email || !userType) {
-      showNotification("Invalid password reset request", "error");
+    if (!token) {
+      showNotification("Invalid or missing reset link", "error");
       navigate("/forgot-password");
       return;
     }
@@ -40,8 +41,7 @@ function ResetPassword() {
 
     try {
       const response = await api.post("/auth/reset-password", {
-        email,
-        userType,
+        token,
         newPassword,
       });
 
@@ -50,7 +50,8 @@ function ResetPassword() {
       navigate("/login");
     } catch (error) {
       showNotification(
-        error.response?.data?.message || "Failed to reset password",
+        error.response?.data?.message ||
+          "Password reset link is invalid or expired",
         "error",
       );
     } finally {
@@ -65,14 +66,9 @@ function ResetPassword() {
 
         <h1>Reset Password</h1>
 
-        <p>
-          Create a new password for
-          <br />
-          <strong>{email}</strong>
-        </p>
+        <p>Create a strong new password for your account.</p>
 
         <form onSubmit={handleSubmit}>
-          {/* New Password */}
           <label>New Password</label>
 
           <div className="password-input-wrapper">
@@ -81,21 +77,20 @@ function ResetPassword() {
               placeholder="Enter new password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              required
+              disabled={loading}
             />
 
             <button
               type="button"
               className="password-toggle-btn"
               onClick={() => setShowNewPassword(!showNewPassword)}
-              aria-label={
-                showNewPassword ? "Hide new password" : "Show new password"
-              }
+              disabled={loading}
             >
               {showNewPassword ? "🙈" : "👁️"}
             </button>
           </div>
 
-          {/* Confirm Password */}
           <label>Confirm Password</label>
 
           <div className="password-input-wrapper">
@@ -104,17 +99,15 @@ function ResetPassword() {
               placeholder="Confirm new password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              disabled={loading}
             />
 
             <button
               type="button"
               className="password-toggle-btn"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              aria-label={
-                showConfirmPassword
-                  ? "Hide confirm password"
-                  : "Show confirm password"
-              }
+              disabled={loading}
             >
               {showConfirmPassword ? "🙈" : "👁️"}
             </button>
