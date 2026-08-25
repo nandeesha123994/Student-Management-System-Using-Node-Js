@@ -2,7 +2,7 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const sendWelcomeEmail = async (name, email) => {
+const sendWelcomeEmail = async ({ name, email }) => {
   try {
     if (!process.env.RESEND_API_KEY) {
       console.error("❌ RESEND_API_KEY not configured");
@@ -10,13 +10,13 @@ const sendWelcomeEmail = async (name, email) => {
     }
 
     const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM || "onboarding@resend.dev",
-      to: [email],
-      subject: "Welcome to Student Management System!",
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: "Welcome to Student Management System 🎓",
       html: `
-        <h2>Welcome, ${name}! 🎓</h2>
-        <p>Your registration was successful.</p>
-        <p>You can now log in to your Student Management System account.</p>
+        <h2>Welcome, ${name}! 🎉</h2>
+        <p>Your Student Management System account has been created successfully.</p>
+        <p>You can now log in and access your student portal.</p>
         <br />
         <p>Thank you!</p>
       `,
