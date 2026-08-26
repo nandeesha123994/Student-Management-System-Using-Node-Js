@@ -2,9 +2,12 @@ const bcrypt = require("bcryptjs");
 const prisma = require("../config/prisma");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+
 const { sendLoginEmail, sendResetPasswordEmail } = require("../config/mailer");
 
-// Register Admin/User
+// ==========================================
+// REGISTER ADMIN / USER
+// ==========================================
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -37,7 +40,7 @@ const registerUser = async (req, res) => {
       },
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered successfully",
       user: {
         id: user.id,
@@ -48,11 +51,16 @@ const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Register Error:", error);
-    res.status(500).json({ message: "Server error" });
+
+    return res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
-// Login User or Student
+// ==========================================
+// LOGIN USER / STUDENT
+// ==========================================
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -76,9 +84,9 @@ const loginUser = async (req, res) => {
 
     // USER / ADMIN LOGIN
     if (user && user.password) {
-      const isUserPasswordValid = await bcrypt.compare(password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, user.password);
 
-      if (isUserPasswordValid) {
+      if (isPasswordValid) {
         const token = jwt.sign(
           {
             id: user.id,
@@ -89,13 +97,12 @@ const loginUser = async (req, res) => {
           { expiresIn: "1d" },
         );
 
-        // Background email - does not slow down login
+        // Send login email in background
         sendLoginEmail({
           name: user.name,
           email: user.email,
-          role: user.role,
         }).catch((error) => {
-          console.error("Login email background error:", error.message);
+          console.error("Login email error:", error.message);
         });
 
         return res.status(200).json({
@@ -121,12 +128,12 @@ const loginUser = async (req, res) => {
       }
 
       if (student.password) {
-        const isStudentPasswordValid = await bcrypt.compare(
+        const isPasswordValid = await bcrypt.compare(
           password,
           student.password,
         );
 
-        if (isStudentPasswordValid) {
+        if (isPasswordValid) {
           const token = jwt.sign(
             {
               id: student.id,
@@ -137,13 +144,12 @@ const loginUser = async (req, res) => {
             { expiresIn: "1d" },
           );
 
-          // Background email - does not slow down login
+          // Send login email in background
           sendLoginEmail({
             name: student.name,
             email: student.email,
-            role: "STUDENT",
           }).catch((error) => {
-            console.error("Login email background error:", error.message);
+            console.error("Login email error:", error.message);
           });
 
           return res.status(200).json({
@@ -160,6 +166,7 @@ const loginUser = async (req, res) => {
       }
     }
 
+    // Student has no password
     if (student && !student.password) {
       return res.status(401).json({
         message: "Password is not set for this student. Please register first.",
@@ -171,12 +178,15 @@ const loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Login Error:", error);
-    return res.status(500).json({ message: "Server error" });
+
+    return res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
 // ==========================================
-// FORGOT PASSWORD - GENERATE RESET LINK
+// FORGOT PASSWORD - SEND RESET EMAIL
 // ==========================================
 const forgotPassword = async (req, res) => {
   try {
@@ -190,7 +200,7 @@ const forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Find User and Student
+    // Search both User and Student tables
     const [user, student] = await Promise.all([
       prisma.user.findUnique({
         where: { email: normalizedEmail },
@@ -200,6 +210,7 @@ const forgotPassword = async (req, res) => {
       }),
     ]);
 
+    // Find which account exists
     const account = user || student;
 
     if (!account) {
@@ -208,16 +219,16 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate secure random token
+    // Generate secure random reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // Token expires in 15 minutes
+    // Token expires after 15 minutes
     const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Save token in the correct account
+    // Save token in the correct database table
     if (user) {
       await prisma.user.update({
-        where: { email: normalizedEmail },
+        where: { id: user.id },
         data: {
           resetToken,
           resetTokenExpiry,
@@ -225,7 +236,7 @@ const forgotPassword = async (req, res) => {
       });
     } else {
       await prisma.student.update({
-        where: { email: normalizedEmail },
+        where: { id: student.id },
         data: {
           resetToken,
           resetTokenExpiry,
@@ -233,35 +244,40 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Your deployed frontend reset page
+    // Frontend URL with reset token
     const resetLink = `https://student-management-system-using-nod-five.vercel.app/reset-password?token=${resetToken}`;
 
-    // Send email
-    sendResetPasswordEmail({
+    // IMPORTANT:
+    // Await the email so we know whether it was actually sent.
+    // Your mailer function should throw an error if sending fails.
+    await sendResetPasswordEmail({
       name: account.name,
       email: account.email,
       resetLink,
-    }).catch((error) => {
-      console.error("Password reset email error:", error.message);
     });
 
     return res.status(200).json({
-      message: "Password reset link has been sent to your email.",
+      message:
+        "Password reset link has been sent to your email. Please check your inbox.",
     });
   } catch (error) {
     console.error("Forgot Password Error:", error);
+
     return res.status(500).json({
-      message: "Server error",
+      message: "Failed to send password reset email",
     });
   }
 };
 
 // ==========================================
-// RESET PASSWORD USING SECURE TOKEN
+// RESET PASSWORD USING TOKEN
 // ==========================================
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
+
+    console.log("Reset password request received");
+    console.log("Token received:", token ? "YES" : "NO");
 
     if (!token || !newPassword) {
       return res.status(400).json({
@@ -275,7 +291,7 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Find valid token that has not expired
+    // Find account with this token and valid expiry time
     const [user, student] = await Promise.all([
       prisma.user.findFirst({
         where: {
@@ -297,12 +313,15 @@ const resetPassword = async (req, res) => {
 
     const account = user || student;
 
+    // Token doesn't exist or has expired
     if (!account) {
       return res.status(400).json({
-        message: "This password reset link is invalid or has expired.",
+        message:
+          "This password reset link is invalid or has expired. Please request a new one.",
       });
     }
 
+    // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update password and remove token
@@ -332,8 +351,9 @@ const resetPassword = async (req, res) => {
     });
   } catch (error) {
     console.error("Reset Password Error:", error);
+
     return res.status(500).json({
-      message: "Server error",
+      message: "Server error while resetting password",
     });
   }
 };
