@@ -15,8 +15,12 @@ function ResetPassword() {
   const [searchParams] = useSearchParams();
   const { showNotification } = useNotification();
 
-  // Get reset token from URL
+  // Get reset token directly from URL
   const token = searchParams.get("token");
+
+  // DEBUG: Check token from URL
+  console.log("TOKEN FROM URL:", token);
+  console.log("CURRENT URL:", window.location.href);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,15 +44,20 @@ function ResetPassword() {
     setLoading(true);
 
     try {
+      // DEBUG: Check exact token being sent to backend
+      console.log("TOKEN BEING SENT TO BACKEND:", token);
+
       const response = await api.post("/auth/reset-password", {
-        token,
-        newPassword,
+        token: token,
+        newPassword: newPassword,
       });
 
       showNotification(response.data.message, "success");
 
       navigate("/login");
     } catch (error) {
+      console.error("RESET PASSWORD ERROR:", error);
+
       showNotification(
         error.response?.data?.message ||
           "Password reset link is invalid or expired",
