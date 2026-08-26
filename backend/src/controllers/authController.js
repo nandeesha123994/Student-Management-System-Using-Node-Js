@@ -280,9 +280,6 @@ const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
-    console.log("Reset password request received");
-    console.log("Token received:", token ? "YES" : "NO");
-
     if (!token || !newPassword) {
       return res.status(400).json({
         message: "Reset token and new password are required",
@@ -295,40 +292,37 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Find account with this token and valid expiry time
-    const [user, student] = await Promise.all([
-      prisma.user.findFirst({
-        where: {
-          resetToken: token,
-          resetTokenExpiry: {
-            gt: new Date(),
-          },
+    // Find a valid User reset token
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpiry: {
+          gt: new Date(),
         },
-      }),
-      prisma.student.findFirst({
-        where: {
-          resetToken: token,
-          resetTokenExpiry: {
-            gt: new Date(),
-          },
+      },
+    });
+
+    // Find a valid Student reset token
+    const student = await prisma.student.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExpiry: {
+          gt: new Date(),
         },
-      }),
-    ]);
+      },
+    });
 
-    const account = user || student;
-
-    // Token doesn't exist or has expired
-    if (!account) {
+    // Token was not found
+    if (!user && !student) {
       return res.status(400).json({
         message:
           "This password reset link is invalid or has expired. Please request a new one.",
       });
     }
 
-    // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update password and remove token
+    // Update USER password
     if (user) {
       await prisma.user.update({
         where: { id: user.id },
@@ -338,7 +332,10 @@ const resetPassword = async (req, res) => {
           resetTokenExpiry: null,
         },
       });
-    } else {
+    }
+
+    // Update STUDENT password
+    if (student) {
       await prisma.student.update({
         where: { id: student.id },
         data: {
