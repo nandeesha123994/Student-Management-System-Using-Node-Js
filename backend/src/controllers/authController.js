@@ -177,7 +177,7 @@ const loginUser = async (req, res) => {
 };
 
 // ==========================================
-// FORGOT PASSWORD
+// FORGOT PASSWORD - GENERATE & SAVE TOKEN
 // ==========================================
 const forgotPassword = async (req, res) => {
   try {
@@ -191,6 +191,7 @@ const forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Find account in User or Student table
     const [user, student] = await Promise.all([
       prisma.user.findUnique({
         where: { email: normalizedEmail },
@@ -200,10 +201,10 @@ const forgotPassword = async (req, res) => {
       }),
     ]);
 
-    const account = user || student;
-
     console.log("User found:", !!user);
     console.log("Student found:", !!student);
+
+    const account = user || student;
 
     if (!account) {
       return res.status(404).json({
@@ -211,52 +212,63 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate token
+    // Generate secure reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // Token expires in 15 minutes
+    // Token expires after 15 minutes
     const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Save token
+    console.log("GENERATED TOKEN:", resetToken);
+
+    // Save token in the correct table
+    let updatedAccount;
+
     if (user) {
-      await prisma.user.update({
+      updatedAccount = await prisma.user.update({
         where: { id: user.id },
         data: {
-          resetToken: resetToken,
-          resetTokenExpiry: resetTokenExpiry,
+          resetToken,
+          resetTokenExpiry,
         },
       });
 
       console.log("TOKEN SAVED FOR USER");
     } else {
-      await prisma.student.update({
+      updatedAccount = await prisma.student.update({
         where: { id: student.id },
         data: {
-          resetToken: resetToken,
-          resetTokenExpiry: resetTokenExpiry,
+          resetToken,
+          resetTokenExpiry,
         },
       });
 
       console.log("TOKEN SAVED FOR STUDENT");
     }
 
+    // Confirm exactly what was returned after saving
+    console.log("SAVED TOKEN:", updatedAccount.resetToken);
+    console.log("TOKEN EXPIRY:", updatedAccount.resetTokenExpiry);
+
+    // Create frontend reset URL
     const resetLink = `https://student-management-system-using-nod-five.vercel.app/reset-password?token=${resetToken}`;
 
-    console.log("Reset link created");
+    console.log("RESET LINK:", resetLink);
 
+    // Send reset email
     await sendResetPasswordEmail({
       name: account.name,
       email: account.email,
       resetLink,
     });
 
-    console.log("Reset email sent successfully");
+    console.log("✅ Reset email sent successfully");
 
     return res.status(200).json({
       message: "Password reset link has been sent to your email.",
     });
   } catch (error) {
     console.error("Forgot Password Error:", error);
+
     return res.status(500).json({
       message: "Failed to send password reset email",
     });
@@ -264,14 +276,15 @@ const forgotPassword = async (req, res) => {
 };
 
 // ==========================================
-// RESET PASSWORD
+// RESET PASSWORD USING TOKEN
 // ==========================================
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
+    console.log("=================================");
     console.log("Reset password request received");
-    console.log("Token received:", token ? "YES" : "NO");
+    console.log("RECEIVED TOKEN:", token);
 
     if (!token || !newPassword) {
       return res.status(400).json({
@@ -285,38 +298,51 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    // Check User table
+    // First find token without checking expiry
+    // This helps us identify whether the problem is token or expiry
     const user = await prisma.user.findFirst({
       where: {
         resetToken: token,
-        resetTokenExpiry: {
-          gt: new Date(),
-        },
       },
     });
 
-    // Check Student table
     const student = await prisma.student.findFirst({
       where: {
         resetToken: token,
-        resetTokenExpiry: {
-          gt: new Date(),
-        },
       },
     });
 
-    console.log("Valid User token found:", !!user);
-    console.log("Valid Student token found:", !!student);
+    console.log("User token found:", !!user);
+    console.log("Student token found:", !!student);
 
-    if (!user && !student) {
+    const account = user || student;
+
+    // Token doesn't exist
+    if (!account) {
       return res.status(400).json({
-        message: "This password reset link is invalid or has expired.",
+        message: "This password reset link is invalid.",
       });
     }
 
+    console.log("DATABASE TOKEN:", account.resetToken);
+    console.log("DATABASE EXPIRY:", account.resetTokenExpiry);
+    console.log("CURRENT TIME:", new Date());
+
+    // Check expiry separately
+    if (
+      !account.resetTokenExpiry ||
+      new Date(account.resetTokenExpiry) < new Date()
+    ) {
+      return res.status(400).json({
+        message:
+          "This password reset link has expired. Please request a new one.",
+      });
+    }
+
+    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update USER
+    // Update USER password
     if (user) {
       await prisma.user.update({
         where: { id: user.id },
@@ -327,10 +353,10 @@ const resetPassword = async (req, res) => {
         },
       });
 
-      console.log("User password reset successfully");
+      console.log("✅ User password reset successfully");
     }
 
-    // Update STUDENT
+    // Update STUDENT password
     if (student) {
       await prisma.student.update({
         where: { id: student.id },
@@ -341,7 +367,7 @@ const resetPassword = async (req, res) => {
         },
       });
 
-      console.log("Student password reset successfully");
+      console.log("✅ Student password reset successfully");
     }
 
     return res.status(200).json({
@@ -350,6 +376,7 @@ const resetPassword = async (req, res) => {
     });
   } catch (error) {
     console.error("Reset Password Error:", error);
+
     return res.status(500).json({
       message: "Server error while resetting password",
     });
