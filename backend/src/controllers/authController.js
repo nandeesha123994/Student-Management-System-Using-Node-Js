@@ -213,6 +213,10 @@ const forgotPassword = async (req, res) => {
     // Find which account exists
     const account = user || student;
 
+    // Check whether the reset token was found
+    console.log("User found:", !!user);
+    console.log("Student found:", !!student);
+
     if (!account) {
       return res.status(404).json({
         message: "No account found with this email",
