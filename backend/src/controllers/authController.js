@@ -214,6 +214,7 @@ const forgotPassword = async (req, res) => {
 
     // Generate secure reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
+    console.log("NEW TOKEN GENERATED:", resetToken);
 
     // Token expires after 15 minutes
     const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
