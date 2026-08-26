@@ -3,10 +3,7 @@ const prisma = require("../config/prisma");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
-const {
-  sendLoginEmail,
-  sendResetPasswordEmail,
-} = require("../config/mailer");
+const { sendLoginEmail, sendResetPasswordEmail } = require("../config/mailer");
 
 // ==========================================
 // REGISTER ADMIN / USER
@@ -121,7 +118,8 @@ const loginUser = async (req, res) => {
     if (student) {
       if (student.status === "INACTIVE") {
         return res.status(403).json({
-          message: "Your account is inactive. Please contact the administrator.",
+          message:
+            "Your account is inactive. Please contact the administrator.",
         });
       }
 
@@ -193,6 +191,7 @@ const forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Find account in User and Student tables
     const [user, student] = await Promise.all([
       prisma.user.findUnique({
         where: { email: normalizedEmail },
@@ -219,7 +218,7 @@ const forgotPassword = async (req, res) => {
     // Token expires in 15 minutes
     const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Save token and confirm it was saved
+    // Save token in database
     if (user) {
       const updatedUser = await prisma.user.update({
         where: { id: user.id },
@@ -229,8 +228,7 @@ const forgotPassword = async (req, res) => {
         },
       });
 
-      console.log("✅ TOKEN SAVED FOR USER:", updatedUser.resetToken);
-      console.log("⏰ TOKEN EXPIRY:", updatedUser.resetTokenExpiry);
+      console.log("TOKEN SAVED FOR USER:", !!updatedUser.resetToken);
     } else {
       const updatedStudent = await prisma.student.update({
         where: { id: student.id },
@@ -240,15 +238,13 @@ const forgotPassword = async (req, res) => {
         },
       });
 
-      console.log("✅ TOKEN SAVED FOR STUDENT:", updatedStudent.resetToken);
-      console.log("⏰ TOKEN EXPIRY:", updatedStudent.resetTokenExpiry);
+      console.log("TOKEN SAVED FOR STUDENT:", !!updatedStudent.resetToken);
     }
 
     // Frontend reset password URL
-    const resetLink =
-      `https://student-management-system-using-nod-five.vercel.app/reset-password?token=${resetToken}`;
+    const resetLink = `https://student-management-system-using-nod-five.vercel.app/reset-password?token=${resetToken}`;
 
-    console.log("🔗 Reset link created:", resetLink);
+    console.log("Reset link created");
 
     // Send reset email
     await sendResetPasswordEmail({
@@ -310,11 +306,12 @@ const resetPassword = async (req, res) => {
           gt: new Date(),
         },
       },
-    ]);
+    });
 
     console.log("Valid User token found:", !!user);
     console.log("Valid Student token found:", !!student);
 
+    // Token not found or expired
     if (!user && !student) {
       return res.status(400).json({
         message:
@@ -335,7 +332,7 @@ const resetPassword = async (req, res) => {
         },
       });
 
-      console.log("✅ User password reset successfully");
+      console.log("User password reset successfully");
     }
 
     // Update STUDENT password and remove token
@@ -349,7 +346,7 @@ const resetPassword = async (req, res) => {
         },
       });
 
-      console.log("✅ Student password reset successfully");
+      console.log("Student password reset successfully");
     }
 
     return res.status(200).json({
