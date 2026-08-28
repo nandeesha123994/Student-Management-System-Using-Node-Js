@@ -1,10 +1,12 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://student-management-backend-d0bd.onrender.com/api",
+  baseURL:
+    import.meta.env.MODE === "development"
+      ? "http://localhost:5000/api"
+      : "https://student-management-backend-d0bd.onrender.com/api",
 });
 
-// Automatically send JWT token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
